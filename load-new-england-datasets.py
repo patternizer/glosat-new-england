@@ -66,9 +66,21 @@ from sklearn import datasets, linear_model
 from sklearn.linear_model import LinearRegression, TheilSenRegressor
 from sklearn.linear_model import RANSACRegressor
 from sklearn.metrics import mean_squared_error, r2_score
-
 from statsmodels.tsa.stattools import adfuller
 import statsmodels.api as sm
+
+# Datetime libraries
+import cftime
+import calendar 
+# print(calendar.calendar(2020))
+# print(calendar.month(2020,2))
+# calendar.isleap(2020)
+from datetime import date, time, datetime, timedelta
+#today = datetime.now()
+#tomorrow = today + pd.to_timedelta(1,unit='D')
+#tomorrow = today + timedelta(days=1)
+#birthday = datetime(1970,11,1,0,0,0).strftime('%Y-%m-%d %H:%M')
+#print('Week:',today.isocalendar()[1])
 
 # Silence library version notifications
 import warnings
@@ -163,7 +175,7 @@ if load_stations == True:
         ts_monthly = ts_monthly + monthly.to_list()    
     ts_monthly = np.array(ts_monthly)   
     t_monthly = pd.date_range(start=str(da.index[0]), periods=len(ts_monthly), freq='MS')    
-    df_bho_2828 = pd.DataFrame({'Tmean':ts_monthly}, index=t_monthly)
+    df_bho_2828 = pd.DataFrame({'T2828':ts_monthly}, index=t_monthly)
     df_bho_2828.index.name = 'datetime'
 
     da = pd.read_table('DATA/bho-tg.dat', index_col=0) # Tg monthly average
@@ -173,13 +185,14 @@ if load_stations == True:
         ts_monthly = ts_monthly + monthly.to_list()    
     ts_monthly = np.array(ts_monthly)   
     t_monthly = pd.date_range(start=str(da.index[0]), periods=len(ts_monthly), freq='MS')    
-    df_bho_tg = pd.DataFrame({'Tmean':ts_monthly}, index=t_monthly)
+    df_bho_tg = pd.DataFrame({'Tg':ts_monthly}, index=t_monthly)
     df_bho_tg.index.name = 'datetime'
 
     da = pd.read_table('DATA/bho-max_01.dat', index_col=0) # daily
     for i in range(2,13):
         db = pd.read_table('DATA/bho-max_'+str(i).zfill(2)+'.dat', index_col=0) # daily 
-        da = pd.concat([da,db],axis=1)        
+        da = pd.concat([da,db],axis=1)    
+    t = []        
     ts = []    
     for i in range(len(da)):                
         daily = da.iloc[i,0:]
@@ -189,14 +202,15 @@ if load_stations == True:
 
     # HANDLE: leap days (not working yet!)
 
-    t = pd.date_range(start=str(da.index[0])+'-01-01', periods=len(ts), freq='D')    
+    t = xr.cftime_range(start=str(da.index[0])+'-01-01', periods=len(ts), freq='D', calendar="all_leap")   
+#   t = pd.date_range(start=str(da.index[0])+'-01-01', periods=len(ts), freq='D')    
     df_bho_tmax = pd.DataFrame({'Tmax':ts}, index=t)
     df_bho_tmax.index.name = 'datetime'
-    mask_leap = ~is_leap_and_29Feb(df_bho_tmax)
-    ts_noleap = df_bho_tmax['Tmax'][mask_leap]
-    t = pd.date_range(start=str(da.index[0])+'-01-01', end=str(da.index[-1])+'-12-31', freq='D')    
-    df_bho_tmax = pd.DataFrame({'Tmax':ts_noleap}, index=t)
-    df_bho_tmax.index.name = 'datetime'
+#    mask_leap = ~is_leap_and_29Feb(df_bho_tmax)
+#    ts_noleap = df_bho_tmax['Tmax'][mask_leap]
+#    t = pd.date_range(start=str(da.index[0])+'-01-01', end=str(da.index[-1])+'-12-31', freq='D')    
+#    df_bho_tmax = pd.DataFrame({'Tmax':ts_noleap}, index=t)
+#    df_bho_tmax.index.name = 'datetime'
     
     da = pd.read_table('DATA/bho-min_01.dat', index_col=0) # daily
     for i in range(2,13):
@@ -211,22 +225,29 @@ if load_stations == True:
 
     # HANDLE: leap days (not working yet!)
  
-    t = pd.date_range(start=str(da.index[0])+'-01-01', periods=len(ts), freq='D')    
+    t = xr.cftime_range(start=str(da.index[0])+'-01-01', periods=len(ts), freq='D', calendar="all_leap")   
+#   t = pd.date_range(start=str(da.index[0])+'-01-01', periods=len(ts), freq='D')    
     df_bho_tmin = pd.DataFrame({'Tmin':ts}, index=t)
     df_bho_tmin.index.name = 'datetime'
-    mask_leap = ~is_leap_and_29Feb(df_bho_tmin)
-    ts_noleap = df_bho_tmin['Tmin'][mask_leap]
-    t = pd.date_range(start=str(da.index[0])+'-01-01', end=str(da.index[-1])+'-12-31', freq='D')    
-    df_bho_tmin = pd.DataFrame({'Tmin':ts_noleap}, index=t)
-    df_bho_tmin.index.name = 'datetime'
+#    mask_leap = ~is_leap_and_29Feb(df_bho_tmin)
+#    ts_noleap = df_bho_tmin['Tmin'][mask_leap]
+#    t = pd.date_range(start=str(da.index[0])+'-01-01', end=str(da.index[-1])+'-12-31', freq='D')    
+#    df_bho_tmin = pd.DataFrame({'Tmin':ts_noleap}, index=t)
+#    df_bho_tmin.index.name = 'datetime'
 
     # CALCULATE: Tg=(Tn+Tx)/2 and resample to monthly (and trim to TS end)
     
     df_bho_daily = pd.DataFrame({'Tmin':df_bho_tmin['Tmin'],'Tmax':df_bho_tmax['Tmax']},index=t)
     df_bho_daily['Tg'] = (df_bho_daily['Tmin']+df_bho_daily['Tmax'])/2.      
-    Tgm = df_bho_daily['Tg'].resample('M').agg('mean').values
-    t = pd.date_range(start=str(da.index[0]), periods=len(Tgm), freq='MS')    
-    df_bho_tgm = pd.DataFrame({'Tgm':Tgm},index=t)
+
+    # RESAMPLE: using xarray
+
+#   Tgm = df_bho_daily['Tg'].resample('M').agg('mean').values    
+    df_bho_daily_xr = df_bho_daily.to_xarray()    
+    df_bho_daily_xr_resampled = df_bho_daily_xr.Tg.resample(datetime='MS').mean().to_dataset()    
+
+    df_bho_monthly = df_bho_tg.copy() 
+    df_bho_monthly['Tgm'] = df_bho_daily_xr_resampled.Tg.values
                
 else:
        
@@ -877,9 +898,9 @@ figstr = 'bho-2828-tg.png'
 titlestr = 'Blue Hill Observatory (BHO): $T_{2828}$ versus $T_g$'
 
 fig, ax = plt.subplots(2,1, figsize=(15,10))
-ax[0].plot(df_bho_2828.index, df_bho_2828['Tmean'], '.', alpha=0.5, ls='-', lw=0.5, color='red', label='$T_{2828}$')
-ax[0].plot(df_bho_2828.index, df_bho_tg['Tmean'], '.', alpha=0.5, ls='-', lw=0.5, color='blue', label='$T_{g}$')
-ax[1].step(x=df_bho_2828.index, y=df_bho_2828['Tmean'] - df_bho_tg['Tmean'], ls='-', lw=0.5, color='teal')
+ax[0].plot(df_bho_2828.index, df_bho_2828['T2828'], '.', alpha=0.5, ls='-', lw=0.5, color='red', label='$T_{2828}$')
+ax[0].plot(df_bho_2828.index, df_bho_tg['Tg'], '.', alpha=0.5, ls='-', lw=0.5, color='blue', label='$T_{g}$')
+ax[1].step(x=df_bho_2828.index, y=df_bho_2828['T2828'] - df_bho_tg['Tg'], ls='-', lw=0.5, color='teal')
 ax[1].sharex(ax[0])
 ax[0].tick_params(labelsize=16)    
 ax[1].tick_params(labelsize=16)    
@@ -899,15 +920,15 @@ figstr = 'bho-tg-daily-monthly.png'
 titlestr = 'Blue Hill Observatory (BHO): $T_{g}$ from daily (1m-MA) versus $T_g$ monthly'
 
 fig, ax = plt.subplots(2,1, figsize=(15,10))
-ax[0].plot(df_bho_tgm.index, df_bho_tgm['Tgm'], '.', alpha=0.5, ls='-', lw=0.5, color='red', label='$T_{g}$ from daily')
-ax[0].plot(df_bho_tg.index, df_bho_tg['Tmean'], '.', alpha=0.5, ls='-', lw=0.5, color='blue', label='$T_{g}$ monthly')
-ax[1].step(x=df_bho_tgm.index, y=(df_bho_tgm['Tgm']-df_bho_tg['Tmean']), ls='-', lw=0.5, color='teal')
+ax[0].plot(df_bho_monthly.index, df_bho_monthly['Tgm'], '.', alpha=0.5, ls='-', lw=0.5, color='red', label='$T_{g}$ from daily')
+ax[0].plot(df_bho_monthly.index, df_bho_monthly['Tg'], '.', alpha=0.5, ls='-', lw=0.5, color='blue', label='$T_{g}$ monthly')
+ax[1].step(x=df_bho_monthly.index, y=(df_bho_monthly['Tgm']-df_bho_monthly['Tg']), ls='-', lw=0.5, color='teal')
 ax[1].sharex(ax[0])
 ax[0].tick_params(labelsize=16)    
 ax[1].tick_params(labelsize=16)    
 ax[0].legend(loc='lower right', ncol=1, markerscale=2, facecolor='lightgrey', framealpha=1, fontsize=fontsize)    
 ax[0].set_ylabel(r'2m-Temperature, [$^{\circ}$C]', fontsize=fontsize)
-ax[1].set_ylabel(r'$T_{g}$ (from daily: 1m-MA) - $T_{g}$ (monthly), [$^{\circ}$C]', fontsize=fontsize)
+ax[1].set_ylabel(r'$T_{g}$ (from daily) - $T_{g}$ (monthly), [$^{\circ}$C]', fontsize=fontsize)
 ax[0].set_title(titlestr, fontsize=fontsize)
 fig.tight_layout()
 plt.savefig(figstr, dpi=300)
