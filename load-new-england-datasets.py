@@ -42,6 +42,7 @@ from mpl_toolkits import mplot3d
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 import cmocean
+import seaborn as sns; sns.set()
 
 # Mapping libraries:
 import cartopy
@@ -822,114 +823,143 @@ uniquenames = df_neighbouring_stations.groupby('NAME').mean().index
 # PLOTS
 #------------------------------------------------------------------------------
 
+#------------------------------------------------------------------------------
+#
+# SEABORN:
+#
+# sns.jointplot(x=x y=y, kind='kde', color='b', marker='+', fill=True)  # kind{ “scatter” | “kde” | “hist” | “hex” | “reg” | “resid” }            
+
+# jointgrid = sns.JointGrid(x=x, y=y, data=df)
+# jointgrid.plot_joint(sns.scatterplot)
+# jointgrid.plot_marginals(sns.kdeplot)
+
+# pairgrid = sns.PairGrid(data=iris)
+# pairgrid = pairgrid.map_upper(sns.scatterplot)
+# pairgrid = pairgrid.map_diag(plt.hist)
+# pairgrid = pairgrid.map_lower(sns.kdeplot)
+
+# sns.scatterplot(x=dx, y=y, s=5, color="b")
+# sns.histplot(x=x, y=y, bins=100, pthresh=0.01, cmap="Blues")
+# sns.kdeplot(x=x, y=y, levels=10, color="k", linewidths=1)
+# sns.kdeplot(x, color='b', shade=True, alpha=0.2, legend=True, **kwargs, label='')
+# sns.boxplot(data = df_bho_monthly, orient = "v")
+# sns.violinplot(data = df_bho_monthly, orient = "v")
+
+#------------------------------------------------------------------------------
+
 # PLOT: Holyoke observations (daily)
 
-print('plotting Holyoke data ...')
+print('plotting Holyoke (+ Farrar) osbervations ...')
     
-figstr = 'salem-massechussets-holyoke.png'
-titlestr = 'Salem, MA: Holyoke data rescue'
+figstr = 'salem(MA)-holyoke-cambridge(MA)-farrar.png'
+titlestr = 'Salem, MA: Holyoke (sub-daily) and Cambridge, MA: Farrar (monthly mean) observations'
 
-fig,ax = plt.subplots(figsize=(15,10))
-plt.plot(df_holyoke.index, df_holyoke['T(08:00)'].rolling(7, center=True).mean(), '.', alpha=0.5, ls='-', lw=0.5, label='T(08:00)')
-plt.plot(df_holyoke.index, df_holyoke['T(13:00)'].rolling(7, center=True).mean(), '.', alpha=0.5, ls='-', lw=0.5, label='T(13:00)')
-plt.plot(df_holyoke.index, df_holyoke['T(22:00)'].rolling(7, center=True).mean(), '.', alpha=0.5, ls='-', lw=0.5, label='T(22:00)')
-plt.plot(df_holyoke.index, df_holyoke['T(sunset)'].rolling(7, center=True).mean(), '.', alpha=0.5, ls='-', lw=0.5, label='T(sunset)')
-
-plt.plot(df_farrar.index, df_farrar['Tmean'], ls='-', lw=3, color='navy', zorder=10, label='Cambridge, MA: Farrar T(mean)')
-
-plt.tick_params(labelsize=fontsize)    
-plt.legend(loc='lower right', ncol=2, fontsize=fontsize)
-#plt.xlabel('Year', fontsize=fontsize)
-plt.ylabel(r'2m-Temperature, [$^{\circ}$C]', fontsize=fontsize)
-plt.title(titlestr, fontsize=fontsize)
-plt.legend(loc='lower left', bbox_to_anchor=(0, -0.2), ncol=5, markerscale=3, facecolor='lightgrey', framealpha=1, fontsize=12)    
-fig.subplots_adjust(left=None, bottom=0.4, right=None, top=None, wspace=None, hspace=None)   
+fig, axs = plt.subplots(figsize=(15,10))
+sns.lineplot(x=df_holyoke.index, y='T(08:00)', data=df_holyoke, ax=axs, marker='.', color='b', alpha=1.0, label='Salem, MA: T(08:00)')
+sns.lineplot(x=df_holyoke.index, y='T(13:00)', data=df_holyoke, ax=axs, marker='.', color='r', alpha=1.0, label='Salem, MA: T(13:00)')
+sns.lineplot(x=df_holyoke.index, y='T(22:00)', data=df_holyoke, ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(22:00)')
+sns.lineplot(x=df_holyoke.index, y='T(sunset)', data=df_holyoke, ax=axs, marker='.', color='orange', alpha=1.0, label='Salem, MA: T(sunset)')
+sns.lineplot(x=df_farrar.index, y=df_farrar['Tmean'], ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
+axs.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+axs.set_xlim(pd.Timestamp('1785-01-01'),pd.Timestamp('1835-01-01'))
+axs.set_ylim(-30,40)
+axs.set_xlabel('Year', fontsize=fontsize)
+axs.set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+axs.set_title(titlestr, fontsize=fontsize)
+axs.tick_params(labelsize=fontsize)    
+fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
 
 # PLOT: Wigglesworth observations (daily)
 
-print('plotting Wigglesworth data ...')
+print('plotting Wigglesworth (+ Farrar) osbervations ...')
     
-figstr = 'salem-massechussets-wigglesworth.png'
-titlestr = 'Salem, MA: Wigglesworth data rescue'
+figstr = 'salem(MA)-wigglesworth-cambridge(MA)-farrar.png'
+titlestr = 'Salem, MA: Wigglesworth (sub-daily) and Cambridge, MA: Farrar (monthly mean) observations'
 
-fig,ax = plt.subplots(figsize=(15,10))
-plt.plot(df_wigglesworth.index, df_wigglesworth['T(08:00)'].rolling(7, center=True).mean(), '.', alpha=0.5, ls='-', lw=0.5, label='T(08:00)')
-plt.plot(df_wigglesworth.index, df_wigglesworth['T(13:00)'].rolling(7, center=True).mean(), '.', alpha=0.5, ls='-', lw=0.5, label='T(13:00)')
-plt.plot(df_wigglesworth.index, df_wigglesworth['T(21:00)'].rolling(7, center=True).mean(), '.', alpha=0.5, ls='-', lw=0.5, label='T(21:00)')
-
-plt.plot(df_farrar.index, df_farrar['Tmean'], ls='-', lw=3, color='navy', zorder=10, label='Cambridge, MA: Farrar T(mean)')
-
-plt.tick_params(labelsize=fontsize)    
-plt.legend(loc='lower right', ncol=2, fontsize=fontsize)
-#plt.xlabel('Year', fontsize=fontsize)
-plt.ylabel(r'2m-Temperature, [$^{\circ}$C]', fontsize=fontsize)
-plt.title(titlestr, fontsize=fontsize)
-plt.legend(loc='lower left', bbox_to_anchor=(0, -0.2), ncol=4, markerscale=3, facecolor='lightgrey', framealpha=1, fontsize=12)    
-fig.subplots_adjust(left=None, bottom=0.4, right=None, top=None, wspace=None, hspace=None)   
+fig, axs = plt.subplots(figsize=(15,10))
+sns.lineplot(x=df_wigglesworth.index, y='T(08:00)', data=df_wigglesworth, ax=axs, marker='.', color='b', alpha=1.0, label='Salem, MA: T(08:00)')
+sns.lineplot(x=df_wigglesworth.index, y='T(13:00)', data=df_wigglesworth, ax=axs, marker='.', color='r', alpha=1.0, label='Salem, MA: T(13:00)')
+sns.lineplot(x=df_wigglesworth.index, y='T(21:00)', data=df_wigglesworth, ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(21:00)')
+sns.lineplot(x=df_farrar.index, y=df_farrar['Tmean'], ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
+axs.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+axs.set_xlim(pd.Timestamp('1785-01-01'),pd.Timestamp('1835-01-01'))
+axs.set_ylim(-30,40)
+axs.set_xlabel('Year', fontsize=fontsize)
+axs.set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+axs.set_title(titlestr, fontsize=fontsize)
+axs.tick_params(labelsize=fontsize)    
+fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
     
-# PLOT: Farrar observations (monthly)
+# PLOT: BHO: T2828 (monthly) versus Tg (monthly)
 
-print('plotting Farrar data ...')
+print('plotting BHO: T2828 (monthly) versus Tg (monthly)...')
     
-figstr = 'cambridge-massechussets-farrar.png'
-titlestr = 'Cambridge, MA: Farrar data rescue'
+figstr = 'bho-t2828(monthly)-vs-tg(monthly).png'
+titlestr = 'Blue Hill Observatory (BHO): $T_{2828}$ (monthly) versus $T_g$ (monthly)'
 
-fig,ax = plt.subplots(figsize=(15,10))
-plt.plot(df_farrar.index, df_farrar['Tmean'], '.', alpha=0.5, ls='-', lw=0.5, color='navy', label='T(mean)')
-plt.tick_params(labelsize=fontsize)    
-plt.legend(loc='lower right', ncol=2, fontsize=fontsize)
-#plt.xlabel('Year', fontsize=fontsize)
-plt.ylabel(r'2m-Temperature, [$^{\circ}$C]', fontsize=fontsize)
-plt.title(titlestr, fontsize=fontsize)
-plt.legend(loc='lower left', bbox_to_anchor=(0, -0.2), ncol=4, markerscale=3, facecolor='lightgrey', framealpha=1, fontsize=12)    
-fig.subplots_adjust(left=None, bottom=0.4, right=None, top=None, wspace=None, hspace=None)   
-plt.savefig(figstr, dpi=300)
-plt.close('all')
-
-# PLOT: BHO: T2828 versus Tg (monthly)
-
-print('plotting BHO: T(2828) versus Tg ...')
-    
-figstr = 'bho-2828-tg.png'
-titlestr = 'Blue Hill Observatory (BHO): $T_{2828}$ versus $T_g$'
-
-fig, ax = plt.subplots(2,1, figsize=(15,10))
-ax[0].plot(df_bho_2828.index, df_bho_2828['T2828'], '.', alpha=0.5, ls='-', lw=0.5, color='red', label='$T_{2828}$')
-ax[0].plot(df_bho_2828.index, df_bho_tg['Tg'], '.', alpha=0.5, ls='-', lw=0.5, color='blue', label='$T_{g}$')
-ax[1].step(x=df_bho_2828.index, y=df_bho_2828['T2828'] - df_bho_tg['Tg'], ls='-', lw=0.5, color='teal')
-ax[1].sharex(ax[0])
-ax[0].tick_params(labelsize=16)    
-ax[1].tick_params(labelsize=16)    
-ax[0].legend(loc='lower right', ncol=1, markerscale=2, facecolor='lightgrey', framealpha=1, fontsize=fontsize)    
-ax[0].set_ylabel(r'2m-Temperature, [$^{\circ}$C]', fontsize=fontsize)
-ax[1].set_ylabel(r'$T_{2828}$-$T_{g}$, [$^{\circ}$C]', fontsize=fontsize)
-ax[0].set_title(titlestr, fontsize=fontsize)
+fig, axs = plt.subplots(2,1, figsize=(15,10))
+sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{2828}$')
+sns.lineplot(x=df_bho_2828.index, y=df_bho_tg['Tg'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$')
+sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'] - df_bho_tg['Tg'], ax=axs[1], color='teal')
+axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+axs[0].set_xlabel('', fontsize=fontsize)
+axs[0].set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+axs[0].set_title(titlestr, fontsize=fontsize)
+axs[0].tick_params(labelsize=fontsize)    
+axs[0].set_ylim(-20,30)
+axs[1].sharex(axs[0])
+axs[1].tick_params(labelsize=fontsize)    
+axs[1].set_xlabel('Year', fontsize=fontsize)
+axs[1].set_ylabel(r'$T_{2828}$-$T_{g}$, $^{\circ}$C', fontsize=fontsize)
+axs[1].set_ylim(-3,3)
 fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
 
-# PLOT: BHO: Tg (daily) 1m-MA versus Tg (monthly)
+figstr = 'bho-t2828(monthly)-vs-tg(monthly)-kde.png'
+titlestr = 'Blue Hill Observatory (BHO): $T_{2828}$ (monthly) versus $T_g$ (monthly) distributions'
 
-print('plotting BHO: Tg(daily) versus Tg(monthly) ...')
+fig, ax = plt.subplots(figsize=(15,10))
+kwargs = {'levels': np.arange(0, 0.15, 0.01)}
+sns.kdeplot(df_bho_2828['T2828'], color='r', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{2828}$')
+sns.kdeplot(df_bho_tg['Tg'], color='b', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$')
+ax.set_xlim(-20,30)
+ax.set_ylim(0,0.05)
+plt.xlabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+plt.ylabel('KDE', fontsize=fontsize)
+plt.title(titlestr, fontsize=fontsize)
+plt.tick_params(labelsize=fontsize)    
+plt.legend(loc='upper right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+fig.tight_layout()
+plt.savefig(figstr, dpi=300)
+plt.close('all')
+
+# PLOT: BHO: Tg (from daily) versus Tg (monthly)
+
+print('plotting BHO: Tg (from daily) versus Tg (monthly) ...')
     
-figstr = 'bho-tg-daily-monthly.png'
-titlestr = 'Blue Hill Observatory (BHO): $T_{g}$ from daily (1m-MA) versus $T_g$ monthly'
+figstr = 'bho-tg(from-daily)-vs-tg(monthly).png'
+titlestr = 'Blue Hill Observatory (BHO): $T_{g}$ (from daily) versus $T_g$ monthly'
 
-fig, ax = plt.subplots(2,1, figsize=(15,10))
-ax[0].plot(df_bho_monthly.index, df_bho_monthly['Tgm'], '.', alpha=0.5, ls='-', lw=0.5, color='red', label='$T_{g}$ from daily')
-ax[0].plot(df_bho_monthly.index, df_bho_monthly['Tg'], '.', alpha=0.5, ls='-', lw=0.5, color='blue', label='$T_{g}$ monthly')
-ax[1].step(x=df_bho_monthly.index, y=(df_bho_monthly['Tgm']-df_bho_monthly['Tg']), ls='-', lw=0.5, color='teal')
-ax[1].sharex(ax[0])
-ax[0].tick_params(labelsize=16)    
-ax[1].tick_params(labelsize=16)    
-ax[0].legend(loc='lower right', ncol=1, markerscale=2, facecolor='lightgrey', framealpha=1, fontsize=fontsize)    
-ax[0].set_ylabel(r'2m-Temperature, [$^{\circ}$C]', fontsize=fontsize)
-ax[1].set_ylabel(r'$T_{g}$ (from daily) - $T_{g}$ (monthly), [$^{\circ}$C]', fontsize=fontsize)
-ax[0].set_title(titlestr, fontsize=fontsize)
+fig, axs = plt.subplots(2,1, figsize=(15,10))
+sns.lineplot(x=df_bho_monthly.index, y='Tgm', data=df_bho_monthly, ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ (from daily)')
+sns.lineplot(x=df_bho_monthly.index, y='Tg', data=df_bho_monthly, ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ monthly')
+sns.lineplot(x=df_bho_monthly.index, y=df_bho_monthly['Tgm']-df_bho_monthly['Tg'], data=df_bho_monthly, ax=axs[1], color='teal')
+axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+axs[0].set_xlabel('', fontsize=fontsize)
+axs[0].set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+axs[0].set_title(titlestr, fontsize=fontsize)
+axs[0].tick_params(labelsize=fontsize)   
+axs[0].set_ylim(-20,30)
+axs[1].sharex(axs[0]) 
+axs[1].tick_params(labelsize=fontsize)    
+axs[1].set_xlabel('Year', fontsize=fontsize)
+axs[1].set_ylabel(r'$T_{g}$ (from daily) - $T_{g}$ (monthly), $^{\circ}$C', fontsize=fontsize)
+axs[1].set_ylim(-3,3)
 fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')

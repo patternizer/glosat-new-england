@@ -1,4 +1,4 @@
-![image](https://github.com/patternizer/glosat-new-england/blob/master/salem-massechussets-holyoke.png)
+![image](https://github.com/patternizer/glosat-new-england/blob/master/salem(MA)-holyoke-cambridge(MA)-farrar.png)
 
 # glosat-new-england
 
