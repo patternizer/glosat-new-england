@@ -964,63 +964,95 @@ fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
 
-# PLOT: Tg (hourly): 1m-MA
+# PLOT: Distributions of Tn, Tg and Tx (hourly) for neighbouring stations
 
-print('plotting neighbouring stations: Tmin ...')
+print('plotting neighbouring station distributions of Tn,Tg and Tx ...')
     
-figstr = 'neighbouring-stations-tmin.png'
-titlestr = 'GHCN-D stations within 1 degree of Boston: $T_n$'
+figstr = 'neighbouring-stations-distributions.png'
+titlestr = 'GHCN-D stations in the Boston, MA area: KDE distributions of monthly $T_{n}$, $T_{g}$ and $T_{x}$'
 
 fig,ax = plt.subplots(figsize=(15,10))
-for i in range(Nstations):        
-#    if i==9:
-#        continue    
+g = sns.FacetGrid(df_neighbouring_stations, col='STATION', col_wrap=4)
+g.map(sns.kdeplot, 'TMIN', color='b', shade=True, alpha=0.5, legend=True, label=r'$T_{n}$')
+g.map(sns.kdeplot, 'TAVG', color='purple', shade=True, alpha=0.5, legend=True, label=r'$T_{g}$')
+g.map(sns.kdeplot, 'TMAX', color='r', shade=True, alpha=0.5, legend=True, label=r'$T_{x}$')
+axs = g.axes.flatten()
+for ax in axs:       
+    ax.set_xlim(-30,40)
+    ax.set_ylim(0,0.15)
+    ax.set_xlabel(r'2m Temperature, $^{\circ}$C', fontsize=12)
+    ax.set_ylabel('KDE', fontsize=12)
+    ax.tick_params(labelsize=12)    
+    ax.legend(loc='upper left', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=12)    
+g.fig.subplots_adjust(top=0.9)
+g.fig.suptitle(titlestr, fontsize=fontsize)
+fig.tight_layout()
+plt.savefig(figstr, dpi=300)
+plt.close('all')
+
+# PLOT: Tx (hourly): 1m-MA for neighbouring stations
+
+print('plotting neighbouring station monthly-averaged timeseries of Tn,Tg and Tx ...')
+    
+#figstr = 'neighbouring-stations-timeseries-24m-average.png'
+#titlestr = 'GHCN-D stations in the Boston, MA area: timeseries of 24m-averaged $T_{n}$, $T_{g}$ and $T_{x}$'
+figstr = 'neighbouring-stations-timeseries-1m-average.png'
+titlestr = 'GHCN-D stations in the Boston, MA area: timeseries of monthly-averaged $T_{n}$, $T_{g}$ and $T_{x}$'
+
+# DEDUCE: row and column index for loop over subplots
+
+nrows = 3
+ncols = 4
+nr = int(np.ceil(Nstations/ncols))
+r = 0
+
+fig,axs = plt.subplots(nrows, ncols, figsize=(15,10))
+#for i in range(Nstations):        
+for i in range(nrows*ncols):    
+    if i > (Nstations-1):
+        axs[-1,-1].axis('off')
+        continue
     ymin = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMIN']
     ymax = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMAX']
     yavg = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TAVG']    
     t = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]].index
-    plt.plot(t, pd.Series(ymin).rolling(24*31, center=True).mean(), '.', alpha=0.5, ls='-', lw=0.5, label=uniquestations[i]+': '+uniquenames[i])
+    c = i%4
+    if (i > 0) & (c == 0):
+        r += 1     
+    print(i,r,c)
+    df_monthly = pd.DataFrame({'TMIN':ymin, 'TAVG':yavg, 'TMAX':ymax}, index=t)
+    df_monthly_xr = df_monthly.to_xarray()    
+    ymin_yearly = df_monthly_xr['TMIN'].resample(datetime='MS').mean().to_dataset() 
+    yavg_yearly = df_monthly_xr['TAVG'].resample(datetime='MS').mean().to_dataset() 
+    ymax_yearly = df_monthly_xr['TMAX'].resample(datetime='MS').mean().to_dataset() 
+    t = pd.date_range(start=str(df_monthly.index[0].year), periods=len(ymin_yearly.TMIN.values), freq='MS')
+    g = sns.lineplot(x=t, y=ymin_yearly.TMIN.values, ax=axs[r,c], marker='.', color='b', alpha=0.5, label='$T_{n}$')
+    sns.lineplot(x=t, y=yavg_yearly.TAVG.values, ax=axs[r,c], marker='.', color='purple', alpha=0.5, label='$T_{g}$')
+    sns.lineplot(x=t, y=ymax_yearly.TMAX.values, ax=axs[r,c], marker='.', color='r', alpha=0.5, label='$T_{x}$')
+    g.axes.set_ylim(-30,40)
+    g.axes.set_xlim(pd.Timestamp('1880-01-01'),pd.Timestamp('2020-01-01'))
+    if i >= ((nrows-1)*ncols-1):
+        g.axes.set_xlabel('Year', fontsize=12)
+    else:
+        g.axes.set_xticklabels([])  
+    if c == 0:
+        g.axes.set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=12)
+    else:
+        g.axes.set_yticklabels([])
+    g.axes.set_title('STATION='+uniquestations[i], fontsize=12)
+    g.axes.tick_params(labelsize=12)    
+    g.axes.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=12)    
 
-plt.tick_params(labelsize=16)    
-plt.legend(loc='lower right', ncol=2, fontsize=10)
-#plt.xlabel('Year', fontsize=fontsize)
-plt.ylabel(r'2m-Temperature, [$^{\circ}$C]', fontsize=fontsize)
-plt.title(titlestr, fontsize=fontsize)
-plt.legend(loc='lower left', bbox_to_anchor=(0, -0.5), ncol=2, markerscale=3, facecolor='lightgrey', framealpha=1, fontsize=12)    
-fig.subplots_adjust(left=None, bottom=0.4, right=None, top=None, wspace=None, hspace=None)   
+fig.subplots_adjust(top=0.9)
+fig.suptitle(titlestr, fontsize=fontsize)
+fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
 
-# PLOT: Tx (hourly): 1m-MA
-
-print('plotting neighbouring stations: Tmax ...')
-    
-figstr = 'neighbouring-stations-tmax.png'
-titlestr = 'GHCN-D stations within 1 degree of Boston: $T_x$'
-
-fig,ax = plt.subplots(figsize=(15,10))
-for i in range(Nstations):        
-#    if i==9:
-#        continue    
-    ymin = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMIN']
-    ymax = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMAX']
-    yavg = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TAVG']    
-    t = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]].index
-    plt.plot(t, pd.Series(ymax).rolling(24*31, center=True).mean(), '.', alpha=0.5, ls='-', lw=0.5, label=uniquestations[i]+': '+uniquenames[i])
-
-plt.tick_params(labelsize=16)    
-#plt.xlabel('Year', fontsize=fontsize)
-plt.ylabel(r'2m-Temperature, [$^{\circ}$C]', fontsize=fontsize)
-plt.title(titlestr, fontsize=fontsize)
-plt.legend(loc='lower left', bbox_to_anchor=(0, -0.5), ncol=2, markerscale=3, facecolor='lightgrey', framealpha=1, fontsize=12)    
-fig.subplots_adjust(left=None, bottom=0.4, right=None, top=None, wspace=None, hspace=None)             
-plt.savefig(figstr, dpi=300)
-plt.close('all')
+# PLOT: Tg (hourly) + Salem (daily)
 
 print('plotting neighbouring stations: Tmean ...')
     
-# PLOT: Tg (hourly) + Salem (daily)
-
 figstr = 'neighbouring-stations-tmean.png'
 titlestr = 'GHCN-D stations within 1 degree of Boston: hourly $T_g$ (1m-MA) versus daily obs from Holyoke record'
 
