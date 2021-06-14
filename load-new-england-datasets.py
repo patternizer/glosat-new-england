@@ -4,8 +4,8 @@
 #------------------------------------------------------------------------------
 # PROGRAM: load-new-england-datasets.py
 #------------------------------------------------------------------------------
-# Version 0.1
-# 8 June, 2021
+# Version 0.2
+# 14 June, 2021
 # Michael Taylor
 # https://patternizer.github.io
 # patternizer AT gmail DOT com
@@ -96,8 +96,9 @@ warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 #------------------------------------------------------------------------------
 
 fontsize = 16
-load_stations = True
-flag_stophere = False
+load_historical_observations = True
+load_bho_observations = True
+load_neighbouring_stations = True
 
 #------------------------------------------------------------------------------
 # METHODS: 
@@ -138,20 +139,21 @@ def is_leap_and_29Feb(s):
 #else:
 #    continue        
 #------------------------------------------------------------------------------
-            
-#------------------------------------------------------------------------------
-# LOAD: Holyoke observations into dataframe
-#------------------------------------------------------------------------------
 
-if load_stations == True:
+
+#==============================================================================
+            
+if load_historical_observations == True:
+    
+    # LOAD: Holyoke
     
     df_holyoke = pd.read_csv('OUT/df_holyoke.csv', index_col=0)
-    df_wigglesworth = pd.read_csv('OUT/df_wigglesworth.csv', index_col=0)
-    df_neighbouring_stations = pd.read_csv('OUT/df_neighbouring_stations.csv', index_col=0)
-
     df_holyoke.index = pd.to_datetime(df_holyoke.index)
+
+    # LOAD: Wigglesworth
+
+    df_wigglesworth = pd.read_csv('OUT/df_wigglesworth.csv', index_col=0)
     df_wigglesworth.index = pd.to_datetime(df_wigglesworth.index)
-    df_neighbouring_stations.index = pd.to_datetime(df_neighbouring_stations.index)
 
     # LOAD: Farrar (CRUTEM format)
 
@@ -165,92 +167,12 @@ if load_stations == True:
     t_monthly = pd.date_range(start=str(da.index[0]), periods=len(ts_monthly), freq='MS')    
     df_farrar = pd.DataFrame({'Tmean':ts_monthly}, index=t_monthly)
     df_farrar.index.name = 'datetime'
-
-    # LOAD: BHO (CRUTEM format)
-
-#   da = pd.read_excel('DATA/BlueHillObservatory_Temperature_Mean_2828_Monthly_v2.0.xlsx', header=5, use_cols=['A':'N'], sheet_name='Mean Temperature deg C')    
-    da = pd.read_table('DATA/bho-2828.dat', index_col=0) # '2828' monthly average
-    ts_monthly = []    
-    for i in range(len(da)):                
-        monthly = da.iloc[i,0:]
-        ts_monthly = ts_monthly + monthly.to_list()    
-    ts_monthly = np.array(ts_monthly)   
-    t_monthly = pd.date_range(start=str(da.index[0]), periods=len(ts_monthly), freq='MS')    
-    df_bho_2828 = pd.DataFrame({'T2828':ts_monthly}, index=t_monthly)
-    df_bho_2828.index.name = 'datetime'
-
-    da = pd.read_table('DATA/bho-tg.dat', index_col=0) # Tg monthly average
-    ts_monthly = []    
-    for i in range(len(da)):                
-        monthly = da.iloc[i,0:]
-        ts_monthly = ts_monthly + monthly.to_list()    
-    ts_monthly = np.array(ts_monthly)   
-    t_monthly = pd.date_range(start=str(da.index[0]), periods=len(ts_monthly), freq='MS')    
-    df_bho_tg = pd.DataFrame({'Tg':ts_monthly}, index=t_monthly)
-    df_bho_tg.index.name = 'datetime'
-
-    da = pd.read_table('DATA/bho-max_01.dat', index_col=0) # daily
-    for i in range(2,13):
-        db = pd.read_table('DATA/bho-max_'+str(i).zfill(2)+'.dat', index_col=0) # daily 
-        da = pd.concat([da,db],axis=1)    
-    t = []        
-    ts = []    
-    for i in range(len(da)):                
-        daily = da.iloc[i,0:]
-        ts = ts + daily.to_list()    
-    ts = np.array(ts)   
-    ts = fahrenheit_to_centigrade(ts)   
-
-    # HANDLE: leap days (not working yet!)
-
-    t = xr.cftime_range(start=str(da.index[0])+'-01-01', periods=len(ts), freq='D', calendar="all_leap")   
-#   t = pd.date_range(start=str(da.index[0])+'-01-01', periods=len(ts), freq='D')    
-    df_bho_tmax = pd.DataFrame({'Tmax':ts}, index=t)
-    df_bho_tmax.index.name = 'datetime'
-#    mask_leap = ~is_leap_and_29Feb(df_bho_tmax)
-#    ts_noleap = df_bho_tmax['Tmax'][mask_leap]
-#    t = pd.date_range(start=str(da.index[0])+'-01-01', end=str(da.index[-1])+'-12-31', freq='D')    
-#    df_bho_tmax = pd.DataFrame({'Tmax':ts_noleap}, index=t)
-#    df_bho_tmax.index.name = 'datetime'
-    
-    da = pd.read_table('DATA/bho-min_01.dat', index_col=0) # daily
-    for i in range(2,13):
-        db = pd.read_table('DATA/bho-min_'+str(i).zfill(2)+'.dat', index_col=0) # daily 
-        da = pd.concat([da,db],axis=1)        
-    ts = []    
-    for i in range(len(da)):                
-        daily = da.iloc[i,0:]
-        ts = ts + daily.to_list()    
-    ts = np.array(ts)   
-    ts = fahrenheit_to_centigrade(ts)   
-
-    # HANDLE: leap days (not working yet!)
- 
-    t = xr.cftime_range(start=str(da.index[0])+'-01-01', periods=len(ts), freq='D', calendar="all_leap")   
-#   t = pd.date_range(start=str(da.index[0])+'-01-01', periods=len(ts), freq='D')    
-    df_bho_tmin = pd.DataFrame({'Tmin':ts}, index=t)
-    df_bho_tmin.index.name = 'datetime'
-#    mask_leap = ~is_leap_and_29Feb(df_bho_tmin)
-#    ts_noleap = df_bho_tmin['Tmin'][mask_leap]
-#    t = pd.date_range(start=str(da.index[0])+'-01-01', end=str(da.index[-1])+'-12-31', freq='D')    
-#    df_bho_tmin = pd.DataFrame({'Tmin':ts_noleap}, index=t)
-#    df_bho_tmin.index.name = 'datetime'
-
-    # CALCULATE: Tg=(Tn+Tx)/2 and resample to monthly (and trim to TS end)
-    
-    df_bho_daily = pd.DataFrame({'Tmin':df_bho_tmin['Tmin'],'Tmax':df_bho_tmax['Tmax']},index=t)
-    df_bho_daily['Tg'] = (df_bho_daily['Tmin']+df_bho_daily['Tmax'])/2.      
-
-    # RESAMPLE: using xarray
-
-#   Tgm = df_bho_daily['Tg'].resample('M').agg('mean').values    
-    df_bho_daily_xr = df_bho_daily.to_xarray()    
-    df_bho_daily_xr_resampled = df_bho_daily_xr.Tg.resample(datetime='MS').mean().to_dataset()    
-
-    df_bho_monthly = df_bho_tg.copy() 
-    df_bho_monthly['Tgm'] = df_bho_daily_xr_resampled.Tg.values
                
 else:
+
+    #------------------------------------------------------------------------------
+    # LOAD: Holyoke observations into dataframe
+    #------------------------------------------------------------------------------
        
     nheader = 0
     f = open('DATA/holyoke.temperature.dat')
@@ -727,6 +649,108 @@ else:
     df_wigglesworth = pd.DataFrame({'T(08:00)':T08_365, 'T(13:00)':T13_365, 'T(21:00)':T21_365}, index=t)
     df_wigglesworth.to_csv('df_wigglesworth.csv')
 
+#==============================================================================
+    
+if load_bho_observations == True:
+       
+    df_bho_2828 = pd.read_csv('OUT/df_bho_2828.csv', index_col=0)
+    df_bho_tg = pd.read_csv('OUT/df_bho_tg.csv', index_col=0)
+    df_bho_daily = pd.read_csv('OUT/df_bho_daily.csv', index_col=0)
+    df_bho_monthly = pd.read_csv('OUT/df_bho_monthly.csv', index_col=0)
+
+    df_bho_2828.index = pd.to_datetime(df_bho_2828.index)
+    df_bho_tg.index = pd.to_datetime(df_bho_tg.index)
+            
+else:
+    
+    #------------------------------------------------------------------------------
+    # LOAD: BHO data from EXCEL
+    #------------------------------------------------------------------------------
+    
+#   da = pd.read_excel('DATA/BlueHillObservatory_Temperature_Mean_2828_Monthly_v2.0.xlsx', header=5, use_cols=['A':'N'], sheet_name='Mean Temperature deg C')    
+    da = pd.read_table('DATA/bho-2828.dat', index_col=0) # '2828' monthly average
+    ts_monthly = []    
+    for i in range(len(da)):                
+        monthly = da.iloc[i,0:]
+        ts_monthly = ts_monthly + monthly.to_list()    
+    ts_monthly = np.array(ts_monthly)   
+    t_monthly = pd.date_range(start=str(da.index[0]), periods=len(ts_monthly), freq='MS')    
+    df_bho_2828 = pd.DataFrame({'T2828':ts_monthly}, index=t_monthly)
+    df_bho_2828.index.name = 'datetime'
+
+    da = pd.read_table('DATA/bho-tg.dat', index_col=0) # Tg monthly average
+    ts_monthly = []    
+    for i in range(len(da)):                
+        monthly = da.iloc[i,0:]
+        ts_monthly = ts_monthly + monthly.to_list()    
+    ts_monthly = np.array(ts_monthly)   
+    t_monthly = pd.date_range(start=str(da.index[0]), periods=len(ts_monthly), freq='MS')    
+    df_bho_tg = pd.DataFrame({'Tg':ts_monthly}, index=t_monthly)
+    df_bho_tg.index.name = 'datetime'
+
+    da = pd.read_table('DATA/bho-max_01.dat', index_col=0) # daily
+    for i in range(2,13):
+        db = pd.read_table('DATA/bho-max_'+str(i).zfill(2)+'.dat', index_col=0) # daily 
+        da = pd.concat([da,db],axis=1)    
+    t = []        
+    ts = []    
+    for i in range(len(da)):                
+        daily = da.iloc[i,0:]
+        ts = ts + daily.to_list()    
+    ts = np.array(ts)   
+    ts = fahrenheit_to_centigrade(ts)   
+
+    # HANDLE: leap days
+
+    t = xr.cftime_range(start=str(da.index[0])+'-01-01', periods=len(ts), freq='D', calendar="all_leap")   
+    df_bho_tmax = pd.DataFrame({'Tmax':ts}, index=t)
+    df_bho_tmax.index.name = 'datetime'
+    
+    da = pd.read_table('DATA/bho-min_01.dat', index_col=0) # daily
+    for i in range(2,13):
+        db = pd.read_table('DATA/bho-min_'+str(i).zfill(2)+'.dat', index_col=0) # daily 
+        da = pd.concat([da,db],axis=1)        
+    ts = []    
+    for i in range(len(da)):                
+        daily = da.iloc[i,0:]
+        ts = ts + daily.to_list()    
+    ts = np.array(ts)   
+    ts = fahrenheit_to_centigrade(ts)   
+
+    # HANDLE: leap days
+ 
+    t = xr.cftime_range(start=str(da.index[0])+'-01-01', periods=len(ts), freq='D', calendar="all_leap")   
+    df_bho_tmin = pd.DataFrame({'Tmin':ts}, index=t)
+    df_bho_tmin.index.name = 'datetime'
+
+    # CALCULATE: Tg=(Tn+Tx)/2 and resample to monthly (and trim to TS end)
+    
+    df_bho_daily = pd.DataFrame({'Tmin':df_bho_tmin['Tmin'],'Tmax':df_bho_tmax['Tmax']},index=t)
+    df_bho_daily['Tg'] = (df_bho_daily['Tmin']+df_bho_daily['Tmax'])/2.      
+
+    # RESAMPLE: using xarray
+
+    df_bho_daily_xr = df_bho_daily.to_xarray()    
+    df_bho_daily_xr_resampled = df_bho_daily_xr.Tg.resample(datetime='MS').mean().to_dataset()    
+    df_bho_monthly = df_bho_tg.copy() 
+    df_bho_monthly['Tgm'] = df_bho_daily_xr_resampled.Tg.values
+    
+    # SAVE: dataframes
+
+    df_bho_2828.to_csv('df_bho_2828.csv')
+    df_bho_tg.to_csv('df_bho_tg.csv')
+    df_bho_daily.to_csv('df_bho_daily.csv')
+    df_bho_monthly.to_csv('df_bho_monthly.csv')
+    
+#==============================================================================
+    
+if load_neighbouring_stations == True:
+          
+    df_neighbouring_stations = pd.read_csv('OUT/df_neighbouring_stations.csv', index_col=0)
+    df_neighbouring_stations.index = pd.to_datetime(df_neighbouring_stations.index)
+
+else:
+    
     #------------------------------------------------------------------------------
     # LOAD: neighbouring station datasets
     #------------------------------------------------------------------------------
@@ -737,13 +761,13 @@ else:
     #USC00197122	SALEM B, MA US
     #USW00014739	BOSTON, MA US
     #USC00195306	NEW SALEM, MA US
-    #USW00094701	BOSTON CITY WEATHER SERVICE OFFICE, MA US
+    #USW00094701	BOSTON CITY WEATHER SERVICE OFFICE, MA US (short --> exclude)
     
     # NOAA NCEI LCD station group 2
     #------------------------------
     #USC00190736	BLUE HILL COOP, MA US
     #USC00190538	BEDFORD, MA US
-    #USC00194105	LAWRENCE, MA US
+    #USC00194105	LAWRENCE, MA US (short --> exclude)
     #USC00190120	AMHERST, MA US
     #USC00376712	PROVIDENCE 2, RI US
     
@@ -774,8 +798,8 @@ else:
     
     df_neighbouring_stations = pd.DataFrame(columns = df_reordered.columns)    
     for i in range(Nstations):        
-    #    if i==9:
-    #        continue        
+        if (i==3) | (i==5): # exclude short series: USC00194105 (Boston WSO) and USC00197122 (Lawrence)
+            continue        
         stationcode = df_reordered[df_reordered['STATION']==df_reordered['STATION'].unique()[i]]['STATION']
         stationname = df_reordered[df_reordered['STATION']==df_reordered['STATION'].unique()[i]]['NAME']
         stationlat = df_reordered[df_reordered['STATION']==df_reordered['STATION'].unique()[i]]['LATITUDE']
@@ -813,7 +837,7 @@ else:
         df_neighbouring_stations = pd.concat([df_neighbouring_stations,df_station], axis=0)
     
     df_neighbouring_stations.index.name = 'datetime'
-    df_neighbouring_stations.to_csv('neighbouring_stations.csv')
+    df_neighbouring_stations.to_csv('df_neighbouring_stations.csv')
 
 Nstations = df_neighbouring_stations.groupby('STATION').count().shape[0]
 uniquestations = df_neighbouring_stations.groupby('STATION').mean().index
@@ -946,9 +970,9 @@ figstr = 'bho-tg(from-daily)-vs-tg(monthly).png'
 titlestr = 'Blue Hill Observatory (BHO): $T_{g}$ (from daily) versus $T_g$ monthly'
 
 fig, axs = plt.subplots(2,1, figsize=(15,10))
-sns.lineplot(x=df_bho_monthly.index, y='Tgm', data=df_bho_monthly, ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ (from daily)')
-sns.lineplot(x=df_bho_monthly.index, y='Tg', data=df_bho_monthly, ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ monthly')
-sns.lineplot(x=df_bho_monthly.index, y=df_bho_monthly['Tgm']-df_bho_monthly['Tg'], data=df_bho_monthly, ax=axs[1], color='teal')
+sns.lineplot(x=df_bho_tg.index, y='Tgm', data=df_bho_monthly, ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ (from daily)')
+sns.lineplot(x=df_bho_tg.index, y='Tg', data=df_bho_monthly, ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ monthly')
+sns.lineplot(x=df_bho_tg.index, y=df_bho_monthly['Tgm']-df_bho_monthly['Tg'], data=df_bho_monthly, ax=axs[1], color='teal')
 axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
 axs[0].set_xlabel('', fontsize=fontsize)
 axs[0].set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
@@ -964,50 +988,37 @@ fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
 
-# PLOT: Distributions of Tn, Tg and Tx (hourly) for neighbouring stations
+# PLOT: Distributions of Tn, Tg and Tx (daily) for neighbouring stations
 
 print('plotting neighbouring station distributions of Tn,Tg and Tx ...')
     
 figstr = 'neighbouring-stations-distributions.png'
 titlestr = 'GHCN-D stations in the Boston, MA area: KDE distributions of monthly $T_{n}$, $T_{g}$ and $T_{x}$'
 
-fig,ax = plt.subplots(figsize=(15,10))
-g = sns.FacetGrid(df_neighbouring_stations, col='STATION', col_wrap=4)
-g.map(sns.kdeplot, 'TMIN', color='b', shade=True, alpha=0.5, legend=True, label=r'$T_{n}$')
-g.map(sns.kdeplot, 'TAVG', color='purple', shade=True, alpha=0.5, legend=True, label=r'$T_{g}$')
-g.map(sns.kdeplot, 'TMAX', color='r', shade=True, alpha=0.5, legend=True, label=r'$T_{x}$')
-axs = g.axes.flatten()
-for ax in axs:       
-    ax.set_xlim(-30,40)
-    ax.set_ylim(0,0.15)
-    ax.set_xlabel(r'2m Temperature, $^{\circ}$C', fontsize=12)
-    ax.set_ylabel('KDE', fontsize=12)
-    ax.tick_params(labelsize=12)    
-    ax.legend(loc='upper left', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=12)    
-g.fig.subplots_adjust(top=0.9)
-g.fig.suptitle(titlestr, fontsize=fontsize)
-fig.tight_layout()
-plt.savefig(figstr, dpi=300)
-plt.close('all')
-
-# PLOT: Tx (hourly): 1m-MA for neighbouring stations
-
-print('plotting neighbouring station monthly-averaged timeseries of Tn,Tg and Tx ...')
-    
-#figstr = 'neighbouring-stations-timeseries-24m-average.png'
-#titlestr = 'GHCN-D stations in the Boston, MA area: timeseries of 24m-averaged $T_{n}$, $T_{g}$ and $T_{x}$'
-figstr = 'neighbouring-stations-timeseries-1m-average.png'
-titlestr = 'GHCN-D stations in the Boston, MA area: timeseries of monthly-averaged $T_{n}$, $T_{g}$ and $T_{x}$'
-
 # DEDUCE: row and column index for loop over subplots
 
 nrows = 3
-ncols = 4
+ncols = 3
 nr = int(np.ceil(Nstations/ncols))
 r = 0
 
+#fig,ax = plt.subplots(figsize=(15,10))
+#g = sns.FacetGrid(df_neighbouring_stations, col='STATION', col_wrap=4)
+#g.map(sns.kdeplot, 'TMIN', color='b', shade=True, alpha=0.5, legend=True, label=r'$T_{n}$')
+#g.map(sns.kdeplot, 'TAVG', color='purple', shade=True, alpha=0.5, legend=True, label=r'$T_{g}$')
+#g.map(sns.kdeplot, 'TMAX', color='r', shade=True, alpha=0.5, legend=True, label=r'$T_{x}$')
+#axs = g.axes.flatten()
+#for ax in axs:       
+#    ax.set_xlim(-30,40)
+#    ax.set_ylim(0,0.15)
+#    ax.set_xlabel(r'2m Temperature, $^{\circ}$C', fontsize=12)
+#    ax.set_ylabel('KDE', fontsize=12)
+#    ax.tick_params(labelsize=12)    
+#    ax.legend(loc='upper left', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=12)        
+#g.fig.subplots_adjust(top=0.9)
+#g.fig.suptitle(titlestr, fontsize=fontsize)
+
 fig,axs = plt.subplots(nrows, ncols, figsize=(15,10))
-#for i in range(Nstations):        
 for i in range(nrows*ncols):    
     if i > (Nstations-1):
         axs[-1,-1].axis('off')
@@ -1016,7 +1027,59 @@ for i in range(nrows*ncols):
     ymax = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMAX']
     yavg = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TAVG']    
     t = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]].index
-    c = i%4
+    c = i%ncols
+    if (i > 0) & (c == 0):
+        r += 1     
+    print(i,r,c)
+    g = sns.kdeplot(ymin, ax=axs[r,c], color='b', shade=True, alpha=0.5, legend=True, label=r'$T_{n}$')
+    sns.kdeplot(yavg, ax=axs[r,c], color='purple', shade=True, alpha=0.5, legend=True, label=r'$T_{g}$')
+    sns.kdeplot(ymax, ax=axs[r,c], color='r', shade=True, alpha=0.5, legend=True, label=r'$T_{x}$')   
+    g.axes.set_xlim(-30,40)
+    g.axes.set_ylim(0,0.05)
+    if (r+1) == nrows:
+        g.axes.set_xlabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+    else:
+        g.axes.set_xlabel('', fontsize=fontsize)
+        g.axes.set_xticklabels([])  
+    if c == 0:
+        g.axes.set_ylabel('KDE', fontsize=fontsize)
+    else:
+        g.axes.set_ylabel('', fontsize=fontsize)
+        g.axes.set_yticklabels([])
+    g.axes.set_title('STATION='+uniquestations[i], fontsize=fontsize)
+    g.axes.tick_params(labelsize=fontsize)    
+    g.axes.legend(loc='upper right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=12)    
+    
+fig.subplots_adjust(top=0.9)
+fig.suptitle(titlestr, fontsize=fontsize)
+fig.tight_layout()
+plt.savefig(figstr, dpi=300)
+plt.close('all')
+
+# PLOT: Timeseries of Tn, Tg and Tx (monthly) for neighbouring stations
+
+print('plotting neighbouring station monthly-averaged timeseries of Tn,Tg and Tx ...')
+    
+figstr = 'neighbouring-stations-timeseries-1m-average.png'
+titlestr = 'GHCN-D stations in the Boston, MA area: timeseries of monthly-averaged $T_{n}$, $T_{g}$ and $T_{x}$'
+
+# DEDUCE: row and column index for loop over subplots
+
+nrows = 3
+ncols = 3
+nr = int(np.ceil(Nstations/ncols))
+r = 0
+
+fig,axs = plt.subplots(nrows, ncols, figsize=(15,10))
+for i in range(nrows*ncols):    
+    if i > (Nstations-1):
+        axs[-1,-1].axis('off')
+        continue
+    ymin = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMIN']
+    ymax = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMAX']
+    yavg = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TAVG']    
+    t = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]].index
+    c = i%ncols
     if (i > 0) & (c == 0):
         r += 1     
     print(i,r,c)
@@ -1031,16 +1094,72 @@ for i in range(nrows*ncols):
     sns.lineplot(x=t, y=ymax_yearly.TMAX.values, ax=axs[r,c], marker='.', color='r', alpha=0.5, label='$T_{x}$')
     g.axes.set_ylim(-30,40)
     g.axes.set_xlim(pd.Timestamp('1880-01-01'),pd.Timestamp('2020-01-01'))
-    if i >= ((nrows-1)*ncols-1):
-        g.axes.set_xlabel('Year', fontsize=12)
+    if (r+1) == nrows:
+        g.axes.set_xlabel('Year', fontsize=fontsize)
     else:
         g.axes.set_xticklabels([])  
     if c == 0:
-        g.axes.set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=12)
+        g.axes.set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
     else:
         g.axes.set_yticklabels([])
-    g.axes.set_title('STATION='+uniquestations[i], fontsize=12)
-    g.axes.tick_params(labelsize=12)    
+    g.axes.set_title('STATION='+uniquestations[i], fontsize=fontsize)
+    g.axes.tick_params(labelsize=fontsize)    
+    g.axes.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=12)    
+
+fig.subplots_adjust(top=0.9)
+fig.suptitle(titlestr, fontsize=fontsize)
+fig.tight_layout()
+plt.savefig(figstr, dpi=300)
+plt.close('all')
+
+# PLOT: Timeseries of Tn, Tg and Tx (2yr=average) for neighbouring stations
+
+print('plotting neighbouring station 2yr-averaged timeseries of Tn,Tg and Tx ...')
+    
+figstr = 'neighbouring-stations-timeseries-24m-average.png'
+titlestr = 'GHCN-D stations in the Boston, MA area: timeseries of 24m-averaged $T_{n}$, $T_{g}$ and $T_{x}$'
+
+# DEDUCE: row and column index for loop over subplots
+
+nrows = 3
+ncols = 3
+nr = int(np.ceil(Nstations/ncols))
+r = 0
+
+fig,axs = plt.subplots(nrows, ncols, figsize=(15,10))
+for i in range(nrows*ncols):    
+    if i > (Nstations-1):
+        axs[-1,-1].axis('off')
+        continue
+    ymin = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMIN']
+    ymax = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMAX']
+    yavg = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TAVG']    
+    t = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]].index
+    c = i%ncols
+    if (i > 0) & (c == 0):
+        r += 1     
+    print(i,r,c)
+    df_monthly = pd.DataFrame({'TMIN':ymin, 'TAVG':yavg, 'TMAX':ymax}, index=t)
+    df_monthly_xr = df_monthly.to_xarray()    
+    ymin_yearly = df_monthly_xr['TMIN'].resample(datetime='2AS').mean().to_dataset() 
+    yavg_yearly = df_monthly_xr['TAVG'].resample(datetime='2AS').mean().to_dataset() 
+    ymax_yearly = df_monthly_xr['TMAX'].resample(datetime='2AS').mean().to_dataset() 
+    t = pd.date_range(start=str(df_monthly.index[0].year), periods=len(ymin_yearly.TMIN.values), freq='2AS')
+    g = sns.lineplot(x=t, y=ymin_yearly.TMIN.values, ax=axs[r,c], marker='.', color='b', alpha=0.5, label='$T_{n}$')
+    sns.lineplot(x=t, y=yavg_yearly.TAVG.values, ax=axs[r,c], marker='.', color='purple', alpha=0.5, label='$T_{g}$')
+    sns.lineplot(x=t, y=ymax_yearly.TMAX.values, ax=axs[r,c], marker='.', color='r', alpha=0.5, label='$T_{x}$')
+    g.axes.set_ylim(-30,40)
+    g.axes.set_xlim(pd.Timestamp('1880-01-01'),pd.Timestamp('2020-01-01'))
+    if (r+1) == nrows:
+        g.axes.set_xlabel('Year', fontsize=fontsize)
+    else:
+        g.axes.set_xticklabels([])  
+    if c == 0:
+        g.axes.set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+    else:
+        g.axes.set_yticklabels([])
+    g.axes.set_title('STATION='+uniquestations[i], fontsize=fontsize)
+    g.axes.tick_params(labelsize=fontsize)    
     g.axes.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=12)    
 
 fig.subplots_adjust(top=0.9)
