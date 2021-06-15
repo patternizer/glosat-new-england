@@ -63,6 +63,7 @@ from subprocess import Popen
 import time
 
 # Stats libraries:
+import random
 from sklearn import datasets, linear_model
 from sklearn.linear_model import LinearRegression, TheilSenRegressor
 from sklearn.linear_model import RANSACRegressor
@@ -132,14 +133,51 @@ def centigrade_to_fahrenheit(x):
 
 def is_leap_and_29Feb(s):
     return (s.index.year % 4 == 0) & ((s.index.year % 100 != 0) | (s.index.year % 400 == 0)) & (s.index.month == 2) & (s.index.day == 29)
-
+    
+#------------------------------------------------------------------------------    
+# LOAD: GloSAT absolute temperature archive: CRUTEM5.0.1.0
 #------------------------------------------------------------------------------
-#if flag_stophere == True:
-#    break
-#else:
-#    continue        
-#------------------------------------------------------------------------------
+    
+print('loading temperatures ...')
+    
+df_temp = pd.read_pickle('DATA/df_temp.pkl', compression='bz2')    
 
+
+stationcode_salem_cgar = ''
+stationcode_salem_b = ''
+stationcode_boston = ''
+stationcode_new_salem = ''
+stationcode_boston_city_wso = '725092'
+stationcode_blue_hill = '744920'
+stationcode_bedford = '720219'
+stationcode_lawrence = '720222'
+stationcode_amherst = '720218'
+stationcode_providence_wso = '725070'
+stationcode_worcester = ''
+
+da_salem_cgar = df_temp.columns # USC00197124	SALEM COAST GUARD AIR STATION, MA US 1948-1967
+da_salem_b = df_temp.columns # USC00197122	SALEM B, MA US 1885-1909
+da_boston = df_temp.columns # USW00014739	BOSTON, MA US 1936-2021
+da_new_salem = df_temp.columns # USC00195306	NEW SALEM, MA US 1897-1998
+da_boston_city_wso = df_temp[df_temp['stationcode']==stationcode_boston_city_wso] # USW00094701	BOSTON CITY WEATHER SERVICE OFFICE, MA US 1893-1935
+da_blue_hill = df_temp[df_temp['stationcode']==stationcode_blue_hill] # USC00190736		BLUE HILL COOP, MA US 1893-2021
+da_bedford = df_temp[df_temp['stationcode']==stationcode_bedford] # USC00190538		BEDFORD, MA US 1893-1923
+da_lawrence = df_temp[df_temp['stationcode']==stationcode_lawrence] # USC00194105	LAWRENCE, MA US 1893-2021
+da_amherst = df_temp[df_temp['stationcode']==stationcode_amherst] # USC00190120	AMHERST, MA US 1893-2021
+da_providence_wso =df_temp[df_temp['stationcode']==stationcode_providence_wso] # USC00376712	PROVIDENCE 2, RI US 1893-1913
+da_worcester = df_temp.columns # USC00199928	WORCESTER, MA US 1892-1962
+
+# USC00197124	SALEM COAST GUARD AIR STATION, MA US 1948-1967
+# USC00197122	SALEM B, MA US 1885-1909
+# USW00014739	BOSTON, MA US 1936-2021
+# USC00195306	NEW SALEM, MA US 1897-1900
+# USW00094701	BOSTON CITY WEATHER SERVICE OFFICE, MA US 1893-1935
+# USC00190736	BLUE HILL COOP, MA US 1893-2021
+# USC00190538	BEDFORD, MA US 1893-1923
+# USC00194105	LAWRENCE, MA US 1893-2021
+# USC00190120	AMHERST, MA US 1893-2021
+# USC00376712	PROVIDENCE 2, RI US 1893-1913
+# USC00199928	WORCESTER, MA US 1892-1962
 
 #==============================================================================
             
@@ -798,8 +836,6 @@ else:
     
     df_neighbouring_stations = pd.DataFrame(columns = df_reordered.columns)    
     for i in range(Nstations):        
-        if (i==3) | (i==5): # exclude short series: USC00194105 (Boston WSO) and USC00197122 (Lawrence)
-            continue        
         stationcode = df_reordered[df_reordered['STATION']==df_reordered['STATION'].unique()[i]]['STATION']
         stationname = df_reordered[df_reordered['STATION']==df_reordered['STATION'].unique()[i]]['NAME']
         stationlat = df_reordered[df_reordered['STATION']==df_reordered['STATION'].unique()[i]]['LATITUDE']
@@ -809,6 +845,8 @@ else:
         xmax = df_reordered[df_reordered['STATION']==df_reordered['STATION'].unique()[i]]['TMAX']
         xavg = df_reordered[df_reordered['STATION']==df_reordered['STATION'].unique()[i]]['TAVG']    
         t = df_reordered[df_reordered['STATION']==df_reordered['STATION'].unique()[i]].index
+        if ((len(t)/365) < 20.0):
+             continue
         if np.nanmean(xmin) > 20: # Fahrenheit detection in Boston
             ymin = fahrenheit_to_centigrade(xmin)   
             ymax = fahrenheit_to_centigrade(xmax)           
@@ -840,8 +878,6 @@ else:
     df_neighbouring_stations.to_csv('df_neighbouring_stations.csv')
 
 Nstations = df_neighbouring_stations.groupby('STATION').count().shape[0]
-uniquestations = df_neighbouring_stations.groupby('STATION').mean().index
-uniquenames = df_neighbouring_stations.groupby('NAME').mean().index
 
 #------------------------------------------------------------------------------
 # PLOTS
@@ -939,7 +975,7 @@ axs[1].sharex(axs[0])
 axs[1].tick_params(labelsize=fontsize)    
 axs[1].set_xlabel('Year', fontsize=fontsize)
 axs[1].set_ylabel(r'$T_{2828}$-$T_{g}$, $^{\circ}$C', fontsize=fontsize)
-axs[1].set_ylim(-3,3)
+axs[1].set_ylim(-2,2)
 fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
@@ -983,7 +1019,7 @@ axs[1].sharex(axs[0])
 axs[1].tick_params(labelsize=fontsize)    
 axs[1].set_xlabel('Year', fontsize=fontsize)
 axs[1].set_ylabel(r'$T_{g}$ (from daily) - $T_{g}$ (monthly), $^{\circ}$C', fontsize=fontsize)
-axs[1].set_ylim(-3,3)
+axs[1].set_ylim(-2,2)
 fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
@@ -993,7 +1029,7 @@ plt.close('all')
 print('plotting neighbouring station distributions of Tn,Tg and Tx ...')
     
 figstr = 'neighbouring-stations-distributions.png'
-titlestr = 'GHCN-D stations in the Boston, MA area: KDE distributions of monthly $T_{n}$, $T_{g}$ and $T_{x}$'
+titlestr = 'GHCN-D stations in the Boston area: KDE distributions of monthly $T_{n}$, $T_{g}$ and $T_{x}$'
 
 # DEDUCE: row and column index for loop over subplots
 
@@ -1026,6 +1062,7 @@ for i in range(nrows*ncols):
     ymin = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMIN']
     ymax = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMAX']
     yavg = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TAVG']    
+    stationcode = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['STATION'][0] 
     t = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]].index
     c = i%ncols
     if (i > 0) & (c == 0):
@@ -1046,7 +1083,7 @@ for i in range(nrows*ncols):
     else:
         g.axes.set_ylabel('', fontsize=fontsize)
         g.axes.set_yticklabels([])
-    g.axes.set_title('STATION='+uniquestations[i], fontsize=fontsize)
+    g.axes.set_title('STATION='+stationcode, fontsize=fontsize)
     g.axes.tick_params(labelsize=fontsize)    
     g.axes.legend(loc='upper right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=12)    
     
@@ -1061,7 +1098,7 @@ plt.close('all')
 print('plotting neighbouring station monthly-averaged timeseries of Tn,Tg and Tx ...')
     
 figstr = 'neighbouring-stations-timeseries-1m-average.png'
-titlestr = 'GHCN-D stations in the Boston, MA area: timeseries of monthly-averaged $T_{n}$, $T_{g}$ and $T_{x}$'
+titlestr = 'GHCN-D stations in the Boston area: timeseries of monthly-averaged $T_{n}$, $T_{g}$ and $T_{x}$'
 
 # DEDUCE: row and column index for loop over subplots
 
@@ -1078,6 +1115,7 @@ for i in range(nrows*ncols):
     ymin = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMIN']
     ymax = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMAX']
     yavg = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TAVG']    
+    stationcode = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['STATION'][0] 
     t = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]].index
     c = i%ncols
     if (i > 0) & (c == 0):
@@ -1102,7 +1140,7 @@ for i in range(nrows*ncols):
         g.axes.set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
     else:
         g.axes.set_yticklabels([])
-    g.axes.set_title('STATION='+uniquestations[i], fontsize=fontsize)
+    g.axes.set_title('STATION='+stationcode, fontsize=fontsize)
     g.axes.tick_params(labelsize=fontsize)    
     g.axes.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=12)    
 
@@ -1117,7 +1155,7 @@ plt.close('all')
 print('plotting neighbouring station 2yr-averaged timeseries of Tn,Tg and Tx ...')
     
 figstr = 'neighbouring-stations-timeseries-24m-average.png'
-titlestr = 'GHCN-D stations in the Boston, MA area: timeseries of 24m-averaged $T_{n}$, $T_{g}$ and $T_{x}$'
+titlestr = 'GHCN-D stations in the Boston area: timeseries of 24m-averaged $T_{n}$, $T_{g}$ and $T_{x}$'
 
 # DEDUCE: row and column index for loop over subplots
 
@@ -1133,7 +1171,8 @@ for i in range(nrows*ncols):
         continue
     ymin = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMIN']
     ymax = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMAX']
-    yavg = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TAVG']    
+    yavg = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TAVG'] 
+    stationcode = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['STATION'][0]     
     t = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]].index
     c = i%ncols
     if (i > 0) & (c == 0):
@@ -1158,7 +1197,7 @@ for i in range(nrows*ncols):
         g.axes.set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
     else:
         g.axes.set_yticklabels([])
-    g.axes.set_title('STATION='+uniquestations[i], fontsize=fontsize)
+    g.axes.set_title('STATION='+stationcode, fontsize=fontsize)
     g.axes.tick_params(labelsize=fontsize)    
     g.axes.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=12)    
 
@@ -1168,41 +1207,86 @@ fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
 
-# PLOT: Tg (hourly) + Salem (daily)
+# PLOT: inventory
 
-print('plotting neighbouring stations: Tmean ...')
+print('plotting station inventory bar chart ...')
     
-figstr = 'neighbouring-stations-tmean.png'
-titlestr = 'GHCN-D stations within 1 degree of Boston: hourly $T_g$ (1m-MA) versus daily obs from Holyoke record'
+figstr = 'neighbouring-stations-inventory.png'
+titlestr = 'GHCN-D stations in the Boston area: inventory bar chart in the style of Havens (1958)'
 
 fig,ax = plt.subplots(figsize=(15,10))
-for i in range(Nstations):        
-#    if i==9:
-#        continue    
-    ymin = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMIN']
-    ymax = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TMAX']
-    yavg = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]]['TAVG']    
-    t = df_neighbouring_stations[df_neighbouring_stations['STATION']==df_neighbouring_stations['STATION'].unique()[i]].index
-    plt.plot(t, pd.Series(yavg).rolling(24*31, center=True).mean(), '.', alpha=0.5, ls='-', lw=0.5, label=uniquestations[i]+': '+uniquenames[i])
-    
-plt.plot(df_holyoke.index, df_holyoke['T(08:00)'], '.', alpha=0.1, ls='-', lw=0.5, label='Holyoke: daily T(08:00)')
-plt.plot(df_holyoke.index, df_holyoke['T(13:00)'], '.', alpha=0.1, ls='-', lw=0.5, label='Holyoke: daily T(13:00)')
-plt.plot(df_holyoke.index, df_holyoke['T(22:00)'], '.', alpha=0.1, ls='-', lw=0.5, label='Holyoke: daily T(22:00)')
-plt.plot(df_holyoke.index, df_holyoke['T(sunset)'], '.', alpha=0.1, ls='-', lw=0.5, label='Holyoke: daily T(sunset)')    
-plt.axhline(y=np.nanmean(df_holyoke['T(08:00)']), ls='dashed', color='blue')
-plt.axhline(y=np.nanmean(df_holyoke['T(13:00)']), ls='dashed', color='orange')
-plt.axhline(y=np.nanmean(df_holyoke['T(22:00)']), ls='dashed', color='green')
-plt.axhline(y=np.nanmean(df_holyoke['T(sunset)']), ls='dashed', color='red')
-        
-plt.tick_params(labelsize=16)    
-#plt.xlabel('Year', fontsize=fontsize)
-plt.ylabel(r'2m-Temperature, [$^{\circ}$C]', fontsize=fontsize)
+
+dg = df_neighbouring_stations.copy().sort_index()
+stationcodes = dg['STATION'].unique()
+categories = stationcodes
+cat_dict = dict(zip(categories, range(1, len(categories)+1))) # map categories to y-values
+val_dict = dict(zip(range(1, len(categories)+1), categories)) # map y-values to categories
+
+# SAMPLE: discrete colours from colornap
+
+cmap = matplotlib.cm.get_cmap('viridis')
+colsteps = np.linspace(0,1,len(categories))
+colors = [ cmap(colsteps[i]) for i in range(len(colsteps)) ]
+#colors = len(colsteps)*[colors[len(colsteps)%2]] # for a single colour from middle of colormap
+col_dict = dict(zip(range(1, len(categories)+1), colors)) # map y-values to categories
+
+dates = dg.index
+#dates = pd.date_range(start='2021-01-01 00:00', end='2021-05-01 00:00', freq='1D')
+#random_sanple = [random.randint(1, len(categories)) for p in range(1,len(dates)+1)]
+#random_sample = [random.randint(1,2) for p in range(1,len(dates)+1)]
+#values = [val_dict[random_sample[i]] for i in range(len(dates))]
+values = [dg['STATION'][i] for i in range(len(dates))]
+df = pd.DataFrame(data=values, index=dates, columns=['category'])
+
+#color_mapper = np.vectorize(lambda x: {1: 'red', 2: 'blue'}.get(x))
+color_mapper = np.vectorize(lambda x: col_dict.get(x))
+df['plotval'] = df['category'].apply(cat_dict.get) # get y-values from categories
+#colors = [str(color_mapper(df['plotval'][i])) for i in range(len(df))]
+colors = [np.array(color_mapper(df['plotval'][i])) for i in range(len(df))]
+
+#for i in range(len(df)):    
+for i in np.arange(0,len(df),31):    
+    plt.plot(df.index[i], df['plotval'][i], marker='s', markersize=20, color=colors[i])
+
+#ax.margins(0.2)
+ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, pos: val_dict.get(x))) # format y-ticks using category LUT
+plt.tick_params(labelsize=fontsize)    
 plt.title(titlestr, fontsize=fontsize)
-plt.legend(loc='lower left', bbox_to_anchor=(0, -0.6), ncol=2, markerscale=3, facecolor='lightgrey', framealpha=1, fontsize=12)    
-fig.subplots_adjust(left=None, bottom=0.4, right=None, top=None, wspace=None, hspace=None)             
+fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
+
+#y, c, x1, x2 = np.loadtxt('test_data.csv', unpack=True)
+#y = np.ones(len(c))
+#color_mapper = np.vectorize(lambda x: {0: 'red', 1: 'Blue'}.get(x))
+#plt.hlines(c, x1, x2, colors=color_mapper(c), lw=10)
+#plt.hlines(y, x1, x2, colors=color_mapper(c), lw=10)
+
+
+
+
+# OUTLIER: check
+
+#x = df_bho_daily[(df_bho_daily.index>pd.to_datetime(1987, format='%Y')) & (df_bho_daily.index<pd.to_datetime(1990, format='%Y'))]
+
+#fig,ax = plt.subplots(figsize=(15,10))
+#ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+#plt.plot(pd.date_range(start='1987-02-01', periods=len(x)), x['Tmin'], color='blue', alpha=0.2, label='Tn[daily]')
+#plt.plot(pd.date_range(start='1987-02-01', periods=len(x), freq='D'), x['Tg'], color='purple', alpha=0.2, label='Tg[daily]')
+#plt.plot(pd.date_range(start='1987-02-01', periods=len(x)), x['Tmax'], color='red', alpha=0.2, label='Tx[daily]')
+#plt.plot(pd.date_range(start='1987-03-01', periods=len(y), freq='MS'), y['Tg'], '.', color='b', ls='-', lw=3, label='Tg[monthly]')
+#plt.plot(pd.date_range(start='1987-03-01', periods=len(y), freq='MS'), y['Tgm'], ',', color='r', ls='_', lw=3, label='Tg[from daily]')
+#plt.legend()
+#plt.savefig('outlier_case_20210615.png', dpi=300)
+#plt.close('all')
+
 
 #------------------------------------------------------------------------------
 print('** END')
 
+#------------------------------------------------------------------------------
+#if flag_stophere == True:
+#    break
+#else:
+#    continue        
+#------------------------------------------------------------------------------
