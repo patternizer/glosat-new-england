@@ -160,6 +160,15 @@ if load_glosat == True:
     stationcode_providence_wso = '725070'
     stationcode_new_haven = '725045'
     
+    stationcode_new_bedford = '720223'
+    stationcode_taunton = '720225'
+    stationcode_reading = '725090'
+    stationcode_provincetown = '725091'
+    stationcode_walpole_2 = '744900'
+    stationcode_west_medway = '744902'
+    stationcode_kingston = '753011'
+    stationcode_plymouth_kingston = '756213'
+
 #   da_salem_cgar = df_temp.columns                                                      # USC00197124	SALEM COAST GUARD AIR STATION, MA US 1948-1967
 #   da_salem_b = df_temp.columns                                                         # USC00197122	SALEM B, MA US 1885-1909
 #   da_boston = df_temp.columns                                                          # USW00014739	BOSTON, MA US 1936-2021
@@ -172,6 +181,15 @@ if load_glosat == True:
     da_providence_wso = df_temp[df_temp['stationcode']==stationcode_providence_wso]      # USC00376712	PROVIDENCE 2, RI US 1893-1913
 #   da_worcester = df_temp.columns                                                       # USC00199928	WORCESTER, MA US 1892-1962
     da_new_haven = df_temp[df_temp['stationcode']==stationcode_new_haven]                                                       # USC00199928	WORCESTER, MA US 1892-1962
+
+    da_new_bedford = df_temp[df_temp['stationcode']==stationcode_new_bedford]                                                       # USC00199928	WORCESTER, MA US 1892-1962
+    da_taunton = df_temp[df_temp['stationcode']==stationcode_taunton]                                                       # USC00199928	WORCESTER, MA US 1892-1962
+    da_reading = df_temp[df_temp['stationcode']==stationcode_reading]                                                       # USC00199928	WORCESTER, MA US 1892-1962
+    da_provincetown = df_temp[df_temp['stationcode']==stationcode_provincetown]                                                       # USC00199928	WORCESTER, MA US 1892-1962
+    da_walpole_2 = df_temp[df_temp['stationcode']==stationcode_walpole_2]                                                       # USC00199928	WORCESTER, MA US 1892-1962
+    da_west_medway = df_temp[df_temp['stationcode']==stationcode_west_medway]                                                       # USC00199928	WORCESTER, MA US 1892-1962
+    da_kingston = df_temp[df_temp['stationcode']==stationcode_kingston]                                                       # USC00199928	WORCESTER, MA US 1892-1962
+    da_plymouth_kingston = df_temp[df_temp['stationcode']==stationcode_plymouth_kingston]                                                       # USC00199928	WORCESTER, MA US 1892-1962
 
     ts = np.array(da_blue_hill.groupby('year').mean().iloc[:,0:12]).ravel()
     t = pd.date_range(start=str(da_blue_hill.year.iloc[0]), periods=len(ts), freq='MS')
@@ -191,6 +209,31 @@ if load_glosat == True:
     ts = np.array(da_new_haven.groupby('year').mean().iloc[:,0:12]).ravel()
     t = pd.date_range(start=str(da_new_haven.year.iloc[0]), periods=len(ts), freq='MS')
     df_new_haven = pd.DataFrame({'new_haven':ts}, index=t) 
+    
+    ts = np.array(da_new_bedford.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_new_bedford.year.iloc[0]), periods=len(ts), freq='MS')
+    df_new_bedford = pd.DataFrame({'new_bedford':ts}, index=t) 
+    ts = np.array(da_taunton.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_taunton.year.iloc[0]), periods=len(ts), freq='MS')
+    df_taunton = pd.DataFrame({'taunton':ts}, index=t) 
+    ts = np.array(da_reading.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_reading.year.iloc[0]), periods=len(ts), freq='MS')
+    df_reading = pd.DataFrame({'reading':ts}, index=t) 
+    ts = np.array(da_provincetown.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_provincetown.year.iloc[0]), periods=len(ts), freq='MS')
+    df_provincetown = pd.DataFrame({'provincetown':ts}, index=t) 
+    ts = np.array(da_walpole_2.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_walpole_2.year.iloc[0]), periods=len(ts), freq='MS')
+    df_walpole_2 = pd.DataFrame({'walpole_2':ts}, index=t) 
+    ts = np.array(da_west_medway.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_west_medway.year.iloc[0]), periods=len(ts), freq='MS')
+    df_west_medway = pd.DataFrame({'west_medway':ts}, index=t) 
+    ts = np.array(da_kingston.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_kingston.year.iloc[0]), periods=len(ts), freq='MS')
+    df_kingston = pd.DataFrame({'kingston':ts}, index=t) 
+    ts = np.array(da_plymouth_kingston.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_plymouth_kingston.year.iloc[0]), periods=len(ts), freq='MS')
+    df_plymouth_kingston = pd.DataFrame({'plymouth_kingston':ts}, index=t)     
     
 #==============================================================================
             
@@ -1255,7 +1298,7 @@ plt.close('all')
 
 # PLOT: Neighbouring stations in the Boston area: GloSAT (monthly) timeseries
 
-sequential_colors = sns.color_palette(color_palette, 9)
+sequential_colors = sns.color_palette(color_palette, 17)
 sns.set_palette(sequential_colors)
 
 figstr = 'glosat-tg(monthly)-timeseries.png'
@@ -1268,6 +1311,16 @@ sns.lineplot(x=df_lawrence.index, y=df_lawrence['lawrence'], marker='.', alpha=0
 sns.lineplot(x=df_amherst.index, y=df_amherst['amherst'], marker='.', alpha=0.5, legend=False)
 sns.lineplot(x=df_providence_wso.index, y=df_providence_wso['providence_wso'], marker='.', alpha=0.5, legend=False)
 sns.lineplot(x=df_new_haven.index, y=df_new_haven['new_haven'], marker='.', alpha=0.5, legend=False)
+
+sns.lineplot(x=df_new_bedford.index, y=df_new_bedford['new_bedford'], marker='.', alpha=0.5, legend=False)
+sns.lineplot(x=df_taunton.index, y=df_taunton['taunton'], marker='.', alpha=0.5, legend=False)
+sns.lineplot(x=df_reading.index, y=df_reading['reading'], marker='.', alpha=0.5, legend=False)
+sns.lineplot(x=df_provincetown.index, y=df_provincetown['provincetown'], marker='.', alpha=0.5, legend=False)
+sns.lineplot(x=df_walpole_2.index, y=df_walpole_2['walpole_2'], marker='.', alpha=0.5, legend=False)
+sns.lineplot(x=df_west_medway.index, y=df_west_medway['west_medway'], marker='.', alpha=0.5, legend=False)
+sns.lineplot(x=df_kingston.index, y=df_kingston['kingston'], marker='.', alpha=0.5, legend=False)
+sns.lineplot(x=df_plymouth_kingston.index, y=df_plymouth_kingston['plymouth_kingston'], marker='.', alpha=0.5, legend=False)
+
 sns.lineplot(x=df_holyoke.dropna().rolling(31,center=True).mean().index, y=pd.Series((df_holyoke['T(08:00)']+df_holyoke['T(13:00)']+df_holyoke['T(22:00)']+df_holyoke['T(sunset)'])/4.).dropna().rolling(31,center=True).mean(), marker='.', alpha=0.5, legend=True, label=r'$T_{919}$ 2yr MA: Salem (Holyoke)')
 sns.lineplot(x=df_wigglesworth.dropna().rolling(31,center=True).mean().index, y=pd.Series((df_wigglesworth['T(08:00)']+df_wigglesworth['T(13:00)']+df_wigglesworth['T(21:00)'])/3.).dropna().rolling(31,center=True).mean(), marker='.', alpha=0.5, legend=True, label=r'$T_{919}$ 2yr MA: Salem (Wigglesworth)')
 sns.lineplot(x=df_farrar.index, y=df_farrar['Tmean'], marker='.', alpha=0.5, legend=True, label=r'$T_{g}$: Cambridge (Farrar)')
@@ -1278,6 +1331,16 @@ sns.lineplot(x=df_lawrence.index, y=(pd.Series(df_lawrence['lawrence']).rolling(
 sns.lineplot(x=df_amherst.index, y=(pd.Series(df_amherst['amherst']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True,  label=r'$T_{g}$ 2yr MA: Amherst')
 sns.lineplot(x=df_providence_wso.index, y=(pd.Series(df_providence_wso['providence_wso']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Povidence WSO')
 sns.lineplot(x=df_new_haven.index, y=(pd.Series(df_new_haven['new_haven']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: New Haven')
+
+sns.lineplot(x=df_new_bedford.index, y=(pd.Series(df_new_bedford['new_bedford']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: New Bedford')
+sns.lineplot(x=df_taunton.index, y=(pd.Series(df_taunton['taunton']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Taunton')
+sns.lineplot(x=df_reading.index, y=(pd.Series(df_reading['reading']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Reading')
+sns.lineplot(x=df_provincetown.index, y=(pd.Series(df_provincetown['provincetown']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Provincetown')
+sns.lineplot(x=df_walpole_2.index, y=(pd.Series(df_walpole_2['walpole_2']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Walpole 2')
+sns.lineplot(x=df_west_medway.index, y=(pd.Series(df_west_medway['west_medway']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: West Medway')
+sns.lineplot(x=df_kingston.index, y=(pd.Series(df_kingston['kingston']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Kingston')
+sns.lineplot(x=df_plymouth_kingston.index, y=(pd.Series(df_plymouth_kingston['plymouth_kingston']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Plymouth-Kingston')
+
 #sns.lineplot(x=df_holyoke.dropna().rolling((31*24),center=True).mean().index, y=(pd.Series((df_holyoke['T(08:00)']+df_holyoke['T(13:00)']+df_holyoke['T(22:00)']+df_holyoke['T(sunset)'])/4.).dropna().rolling((31*24),center=True).mean()), ls='-', lw=3, legend=True, label=r'$T_{919}$ 2yr MA: Salem (Holyoke)')
 #sns.lineplot(x=df_wigglesworth.dropna().rolling((31*24),center=True).mean().index, y=(pd.Series((df_wigglesworth['T(08:00)']+df_wigglesworth['T(13:00)']+df_wigglesworth['T(21:00)'])/3.).dropna().rolling((31*24),center=True).mean()).ewm(span=(31*24), adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{919}$ 2yr MA: Salem (Wigglesworth)')
 #sns.lineplot(x=df_farrar.index, y=(pd.Series(df_farrar['Tmean']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$: Cambridge (Farrar)')
@@ -1293,7 +1356,7 @@ plt.close('all')
 
 # PLOT: Neighbouring stations in the Boston area: GloSAT (monthly) KDE distributions
 
-sequential_colors = sns.color_palette(color_palette, 9)
+sequential_colors = sns.color_palette(color_palette, 17)
 sns.set_palette(sequential_colors)
 
 df_holyoke_919 = (df_holyoke['T(08:00)']+df_holyoke['T(13:00)']+df_holyoke['T(22:00)']+df_holyoke['T(sunset)'])/4.0
@@ -1310,6 +1373,16 @@ sns.kdeplot(df_lawrence['lawrence'], shade=True, alpha=0.2, legend=True, **kwarg
 sns.kdeplot(df_amherst['amherst'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Amherst')
 sns.kdeplot(df_providence_wso['providence_wso'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Povidence WSO')
 sns.kdeplot(df_new_haven['new_haven'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: New Haven')
+
+sns.kdeplot(df_new_bedford['new_bedford'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: New Bedford')
+sns.kdeplot(df_taunton['taunton'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Taunton')
+sns.kdeplot(df_reading['reading'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Reading')
+sns.kdeplot(df_provincetown['provincetown'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Provincetown')
+sns.kdeplot(df_walpole_2['walpole_2'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Walpole 2')
+sns.kdeplot(df_west_medway['west_medway'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: West Medway')
+sns.kdeplot(df_kingston['kingston'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Kingston')
+sns.kdeplot(df_plymouth_kingston['plymouth_kingston'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Plymouth-Kingston')
+
 sns.kdeplot(df_holyoke_919, shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{919}$ Salem (Holyoke)')
 sns.kdeplot(df_wigglesworth_919, shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{919}$ Salem (Wigglesworth)')
 sns.kdeplot(df_farrar['Tmean'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Cambridge (Farrar)')
