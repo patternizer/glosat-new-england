@@ -824,9 +824,13 @@ else:
     # RESAMPLE: using xarray
 
     df_bho_daily_xr = df_bho_daily.to_xarray()    
-    df_bho_daily_xr_resampled = df_bho_daily_xr.Tg.resample(datetime='MS').mean().to_dataset()    
+    df_bho_daily_xr_resampled_Tmin = df_bho_daily_xr.Tmin.resample(datetime='MS').mean().to_dataset()    
+    df_bho_daily_xr_resampled_Tmax = df_bho_daily_xr.Tmax.resample(datetime='MS').mean().to_dataset()    
+    df_bho_daily_xr_resampled_Tg = df_bho_daily_xr.Tg.resample(datetime='MS').mean().to_dataset()    
     df_bho_monthly = df_bho_tg.copy() 
-    df_bho_monthly['Tgm'] = df_bho_daily_xr_resampled.Tg.values
+    df_bho_monthly['Tmin'] = df_bho_daily_xr_resampled_Tmin.Tmin.values
+    df_bho_monthly['Tmax'] = df_bho_daily_xr_resampled_Tmax.Tmax.values
+    df_bho_monthly['Tgm'] = df_bho_daily_xr_resampled_Tg.Tg.values
     
     # SAVE: dataframes
 
@@ -1037,6 +1041,8 @@ plt.close('all')
 
 # PLOT: BHO: T2828 (monthly) versus Tg (monthly) KDE distribution
 
+print('plotting BHO: T2828 (monthly) versus Tg (monthly) distributions ...')
+
 figstr = 'bho-t2828(monthly)-vs-tg(monthly)-kde.png'
 titlestr = 'Blue Hill Observatory (BHO): $T_{2828}$ (monthly) versus $T_g$ (monthly) distributions'
 
@@ -1081,6 +1087,28 @@ fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
 
+# PLOT: BHO: T2828 (monthly) versus Tg (monthly) KDE distribution
+
+print('plotting BHO: Tg (from daily) versus Tg (monthly) distributions ...')
+
+figstr = 'bho-tg(from daily)-vs-tg(monthly)-kde.png'
+titlestr = 'Blue Hill Observatory (BHO): $T_{g}$ (from daily) versus $T_g$ (monthly) distributions'
+
+fig, ax = plt.subplots(figsize=(15,10))
+kwargs = {'levels': np.arange(0, 0.15, 0.01)}
+sns.kdeplot(df_bho_monthly['Tgm'], color='r', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$ (from daily)')
+sns.kdeplot(df_bho_monthly['Tg'], color='b', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$ monthly')
+ax.set_xlim(-20,30)
+ax.set_ylim(0,0.05)
+plt.xlabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+plt.ylabel('KDE', fontsize=fontsize)
+plt.title(titlestr, fontsize=fontsize)
+plt.tick_params(labelsize=fontsize)    
+plt.legend(loc='upper left', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+fig.tight_layout()
+plt.savefig(figstr, dpi=300)
+plt.close('all')
+
 # PLOT: Distributions of Tn, Tg and Tx (daily) for neighbouring stations
 
 print('plotting neighbouring station distributions of Tn,Tg and Tx ...')
@@ -1120,7 +1148,6 @@ for i in range(nrows*ncols):
     c = i%ncols
     if (i > 0) & (c == 0):
         r += 1     
-    print(i,r,c)
     g = sns.kdeplot(ymin, ax=axs[r,c], color='b', shade=True, alpha=0.5, legend=True, label=r'$T_{n}$')
     sns.kdeplot(yavg, ax=axs[r,c], color='purple', shade=True, alpha=0.5, legend=True, label=r'$T_{g}$')
     sns.kdeplot(ymax, ax=axs[r,c], color='r', shade=True, alpha=0.5, legend=True, label=r'$T_{x}$')   
@@ -1169,7 +1196,6 @@ for i in range(nrows*ncols):
     c = i%ncols
     if (i > 0) & (c == 0):
         r += 1     
-    print(i,r,c)
     df_monthly = pd.DataFrame({'TMIN':ymin, 'TAVG':yavg, 'TMAX':ymax}, index=t)
     df_monthly_xr = df_monthly.to_xarray()    
     ymin_yearly = df_monthly_xr['TMIN'].resample(datetime='MS').mean().to_dataset() 
@@ -1222,7 +1248,6 @@ for i in range(nrows*ncols):
     c = i%ncols
     if (i > 0) & (c == 0):
         r += 1     
-    print(i,r,c)
     df_monthly = pd.DataFrame({'TMIN':ymin, 'TAVG':yavg, 'TMAX':ymax}, index=t)
     df_monthly_xr = df_monthly.to_xarray()    
     ymin_yearly = df_monthly_xr['TMIN'].resample(datetime='2AS').mean().to_dataset() 
@@ -1254,7 +1279,7 @@ plt.close('all')
 
 # PLOT: inventory
 
-print('plotting station inventory bar chart ...')
+print('plotting station inventory chart ...')
 
 sequential_colors = sns.color_palette(color_palette, 1)
 sns.set_palette(sequential_colors)
@@ -1296,6 +1321,8 @@ plt.savefig(figstr, dpi=300)
 plt.close('all')
 
 # PLOT: Neighbouring stations in the Boston area: GloSAT (monthly) timeseries
+
+print('plotting neighbouring stations in the Boston area timeseries ... ')
 
 sequential_colors = sns.color_palette(color_palette, 17)
 sns.set_palette(sequential_colors)
@@ -1355,6 +1382,8 @@ plt.close('all')
 
 # PLOT: Neighbouring stations in the Boston area: GloSAT (monthly) KDE distributions
 
+print('plotting neighbouring stations in the Boston area distributions ... ')
+
 sequential_colors = sns.color_palette(color_palette, 17)
 sns.set_palette(sequential_colors)
 
@@ -1392,6 +1421,39 @@ plt.ylabel('KDE', fontsize=fontsize)
 plt.title(titlestr, fontsize=fontsize)
 plt.tick_params(labelsize=fontsize)    
 plt.legend(loc='upper left', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+fig.tight_layout()
+plt.savefig(figstr, dpi=300)
+plt.close('all')
+
+# PLOT: BHO timeseries from all source
+
+print('plotting BHO timeseries (all sources) ... ')
+
+sequential_colors = sns.color_palette(color_palette, 3)
+sns.set_palette(sequential_colors)
+
+figstr = 'bho-timeseries-all-sources.png'
+titlestr = 'BHO: all sources'
+
+fig, ax = plt.subplots(figsize=(15,10))
+sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'], marker='o', alpha=0.5, legend=False)
+sns.lineplot(x=df_bho_2828.index, y=(pd.Series(df_bho_2828['T2828']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{2828}$ 2yr MA: BHO')
+sns.lineplot(x=df_bho_2828.index, y=df_bho_tg['Tg'], marker='.', alpha=0.5, legend=False)
+sns.lineplot(x=df_bho_2828.index, y=(pd.Series(df_bho_tg['Tg']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: BHO (monthly)')
+sns.lineplot(x=df_bho_tg.index, y=df_bho_monthly['Tgm'], alpha=0.5, legend=False)
+sns.lineplot(x=df_bho_tg.index, y=(pd.Series(df_bho_monthly['Tgm']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=2, legend=True, label=r'$T_{g}$ 2yr MA: BHO (from daily)')
+#sns.lineplot(x=df_bho_tg.index, y=df_bho_monthly['Tmin'], alpha=0.5, legend=False)
+sns.lineplot(x=df_bho_tg.index, y=(pd.Series(df_bho_monthly['Tmin']).rolling((24),center=True).mean()).ewm(span=(24), adjust=False).mean(), ls='--', lw=2, legend=True, label=r'$T_{n}$ 2yr MA: BHO (from daily)')
+#sns.lineplot(x=df_bho_tg.index, y=df_bho_monthly['Tmax'], alpha=0.5, legend=False)
+sns.lineplot(x=df_bho_tg.index, y=(pd.Series(df_bho_monthly['Tmax']).rolling((24),center=True).mean()).ewm(span=(24), adjust=False).mean(), ls='--', lw=2, legend=True, label=r'$T_{x}$ 2yr MA: BHO (from daily)')
+sns.lineplot(x=df_blue_hill.index, y=df_blue_hill['blue_hill'], marker='.', alpha=0.5, legend=False)
+sns.lineplot(x=df_blue_hill.index, y=(pd.Series(df_blue_hill['blue_hill']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: GloSAT')
+ax.set_ylim(-20,30)
+plt.xlabel('Year', fontsize=fontsize)
+plt.ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+plt.title(titlestr, fontsize=fontsize)
+plt.tick_params(labelsize=fontsize)    
+plt.legend(loc='lower right', ncol=3, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
 fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
