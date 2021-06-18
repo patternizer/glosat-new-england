@@ -102,7 +102,6 @@ load_historical_observations = True
 load_bho_observations = True
 load_neighbouring_stations = True
 load_glosat = True
-make_plots = False
 color_palette = 'viridis_r'
 
 #------------------------------------------------------------------------------
@@ -1321,9 +1320,9 @@ sns.lineplot(x=df_west_medway.index, y=df_west_medway['west_medway'], marker='.'
 sns.lineplot(x=df_kingston.index, y=df_kingston['kingston'], marker='.', alpha=0.5, legend=False)
 sns.lineplot(x=df_plymouth_kingston.index, y=df_plymouth_kingston['plymouth_kingston'], marker='.', alpha=0.5, legend=False)
 
-sns.lineplot(x=df_holyoke.dropna().rolling(31,center=True).mean().index, y=pd.Series((df_holyoke['T(08:00)']+df_holyoke['T(13:00)']+df_holyoke['T(22:00)']+df_holyoke['T(sunset)'])/4.).dropna().rolling(31,center=True).mean(), marker='.', alpha=0.5, legend=True, label=r'$T_{919}$ 2yr MA: Salem (Holyoke)')
-sns.lineplot(x=df_wigglesworth.dropna().rolling(31,center=True).mean().index, y=pd.Series((df_wigglesworth['T(08:00)']+df_wigglesworth['T(13:00)']+df_wigglesworth['T(21:00)'])/3.).dropna().rolling(31,center=True).mean(), marker='.', alpha=0.5, legend=True, label=r'$T_{919}$ 2yr MA: Salem (Wigglesworth)')
-sns.lineplot(x=df_farrar.index, y=df_farrar['Tmean'], marker='.', alpha=0.5, legend=True, label=r'$T_{g}$: Cambridge (Farrar)')
+sns.lineplot(x=df_holyoke.dropna().rolling(31,center=True).mean().index, y=pd.Series((df_holyoke['T(08:00)']+df_holyoke['T(13:00)']+df_holyoke['T(22:00)']+df_holyoke['T(sunset)'])/4.).dropna().rolling(31,center=True).mean(), marker='.', alpha=0.5, legend=True, label=r'$T_{919}$ 1m MA: Salem (Holyoke)')
+sns.lineplot(x=df_wigglesworth.dropna().rolling(31,center=True).mean().index, y=pd.Series((df_wigglesworth['T(08:00)']+df_wigglesworth['T(13:00)']+df_wigglesworth['T(21:00)'])/3.).dropna().rolling(31,center=True).mean(), marker='.', alpha=0.5, legend=True, label=r'$T_{919}$ 1m MA: Salem (Wigglesworth)')
+sns.lineplot(x=df_farrar.index, y=df_farrar['Tmean'], marker='.', alpha=0.5, legend=True, label=r'$T_{g}$ (monthly): Cambridge (Farrar)')
 
 sns.lineplot(x=df_blue_hill.index, y=(pd.Series(df_blue_hill['blue_hill']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Blue Hill')
 sns.lineplot(x=df_bedford.index, y=(pd.Series(df_bedford['bedford']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Bedford')
