@@ -4,8 +4,8 @@
 #------------------------------------------------------------------------------
 # PROGRAM: load-new-england-datasets.py
 #------------------------------------------------------------------------------
-# Version 0.3
-# 16 June, 2021
+# Version 0.4
+# 19 June, 2021
 # Michael Taylor
 # https://patternizer.github.io
 # patternizer AT gmail DOT com
@@ -102,6 +102,7 @@ load_historical_observations = True
 load_bho_observations = True
 load_neighbouring_stations = True
 load_glosat = True
+load_ghcnm = True
 color_palette = 'viridis_r'
 
 #------------------------------------------------------------------------------
@@ -139,6 +140,81 @@ def is_leap_and_29Feb(s):
     
 #==============================================================================
 # LOAD: Datasets
+#==============================================================================
+
+if load_ghcnm == True:
+    
+    # LOAD: GHCNM-v4 (QCU and QCF)
+        
+    df_ghcnmv4_qcu = pd.read_csv('OUT/df_ghcnmv4_qcu.csv', index_col=0)
+    df_ghcnmv4_qcu.index = pd.to_datetime(df_ghcnmv4_qcu.index)
+    df_ghcnmv4_qcf = pd.read_csv('OUT/df_ghcnmv4_qcf.csv', index_col=0)
+    df_ghcnmv4_qcf.index = pd.to_datetime(df_ghcnmv4_qcf.index)
+    
+else:
+    
+    #------------------------------------------------------------------------------    
+    # LOAD: GHCNM-v4 monthly adjusted and unadjusted data
+    #------------------------------------------------------------------------------
+        
+    print('loading GHCNM-v4 temperatures ...')
+    
+    nheader = 0
+    f = open('DATA/USC00190736-BHO/USC00190736-ghcnm-v4-qcu.dat')
+    lines = f.readlines()
+    dates = []
+    vals = []
+    for i in range(nheader,len(lines)):    
+        date = lines[i][11:15]
+        val = 12*[None]
+        for j in range(len(val)):
+            val[j] = lines[i][19+(j*8):19+(j*8)+5]
+        dates.append(date)
+        vals.append(val) 
+    f.close()    
+    years = np.array(years).astype('int')
+    vals = np.array(vals)
+    
+    df = pd.DataFrame(columns=['year','1','2','3','4','5','6','7','8','9','10','11','12'])
+    df['year'] = dates
+    for j in range(1,13):   
+        df[df.columns[j]] = [ float(vals[i][j-1])/100.0 for i in range(len(df)) ]
+    df_ghcnmv4_qcu = df.replace(-99.99,np.nan)
+    
+    ts = np.array(df_ghcnmv4_qcu.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(df_ghcnmv4_qcu.year.iloc[0]), periods=len(ts), freq='MS')
+    df_ghcnmv4_qcu = pd.DataFrame({'df_ghcnmv4_qcu':ts}, index=t)     
+    df_ghcnmv4_qcu.to_csv('df_ghcnmv4_qcu.csv')
+    
+    # LOAD: GHCNM-v4 (QCF)
+    
+    nheader = 0
+    f = open('DATA/USC00190736-BHO/USC00190736-ghcnm-v4-qcf.dat')
+    lines = f.readlines()
+    dates = []
+    vals = []
+    for i in range(nheader,len(lines)):    
+        date = lines[i][11:15]
+        val = 12*[None]
+        for j in range(len(val)):
+            val[j] = lines[i][19+(j*8):19+(j*8)+5]
+        dates.append(date)
+        vals.append(val) 
+    f.close()    
+    years = np.array(years).astype('int')
+    vals = np.array(vals)
+    
+    df = pd.DataFrame(columns=['year','1','2','3','4','5','6','7','8','9','10','11','12'])
+    df['year'] = dates
+    for j in range(1,13):   
+        df[df.columns[j]] = [ float(vals[i][j-1])/100.0 for i in range(len(df)) ]
+    df_ghcnmv4_qcf = df.replace(-99.99,np.nan)
+    
+    ts = np.array(df_ghcnmv4_qcf.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(df_ghcnmv4_qcf.year.iloc[0]), periods=len(ts), freq='MS')
+    df_ghcnmv4_qcf = pd.DataFrame({'df_ghcnmv4_qcf':ts}, index=t) 
+    df_ghcnmv4_qcf.to_csv('df_ghcnmv4_qcf.csv')
+
 #==============================================================================
 
 if load_glosat == True:
@@ -1024,6 +1100,8 @@ fig, axs = plt.subplots(2,1, figsize=(15,10))
 sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{2828}$')
 sns.lineplot(x=df_bho_2828.index, y=df_bho_tg['Tg'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$')
 sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'] - df_bho_tg['Tg'], ax=axs[1], color='teal')
+plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
+plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
 axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
 axs[0].set_xlabel('', fontsize=fontsize)
 axs[0].set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
@@ -1034,7 +1112,7 @@ axs[1].sharex(axs[0])
 axs[1].tick_params(labelsize=fontsize)    
 axs[1].set_xlabel('Year', fontsize=fontsize)
 axs[1].set_ylabel(r'$T_{2828}$-$T_{g}$, $^{\circ}$C', fontsize=fontsize)
-axs[1].set_ylim(-2,2)
+axs[1].set_ylim(-1.5,0.5)
 fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
@@ -1073,6 +1151,8 @@ sns.lineplot(x=df_bho_tg.index, y='Tgm', data=df_bho_monthly, ax=axs[0], marker=
 sns.lineplot(x=df_bho_tg.index, y='Tg', data=df_bho_monthly, ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ monthly')
 sns.lineplot(x=df_bho_tg.index, y=df_bho_monthly['Tgm']-df_bho_monthly['Tg'], data=df_bho_monthly, ax=axs[1], color='teal')
 axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
+plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
 axs[0].set_xlabel('', fontsize=fontsize)
 axs[0].set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
 axs[0].set_title(titlestr, fontsize=fontsize)
@@ -1082,7 +1162,7 @@ axs[1].sharex(axs[0])
 axs[1].tick_params(labelsize=fontsize)    
 axs[1].set_xlabel('Year', fontsize=fontsize)
 axs[1].set_ylabel(r'$T_{g}$ (from daily) - $T_{g}$ (monthly), $^{\circ}$C', fontsize=fontsize)
-axs[1].set_ylim(-2,2)
+axs[1].set_ylim(-0.1,0.1)
 fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
@@ -1425,35 +1505,29 @@ fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
 
-# PLOT: BHO timeseries from all source
+# PLOT: BHO timeseries from all sources (no Tx or Tn)
 
 print('plotting BHO timeseries (all sources) ... ')
 
-sequential_colors = sns.color_palette(color_palette, 3)
+sequential_colors = sns.color_palette(color_palette, 5)
 sns.set_palette(sequential_colors)
 
-figstr = 'bho-timeseries-all-sources.png'
+figstr = 'bho-timeseries-all-sources-nominmax.png'
 titlestr = 'BHO: all sources'
 
 fig, ax = plt.subplots(figsize=(15,10))
-sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'], marker='o', alpha=0.5, legend=False)
-sns.lineplot(x=df_bho_2828.index, y=(pd.Series(df_bho_2828['T2828']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{2828}$ 2yr MA: BHO')
-sns.lineplot(x=df_bho_2828.index, y=df_bho_tg['Tg'], marker='.', alpha=0.5, legend=False)
-sns.lineplot(x=df_bho_2828.index, y=(pd.Series(df_bho_tg['Tg']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: BHO (monthly)')
-sns.lineplot(x=df_bho_tg.index, y=df_bho_monthly['Tgm'], alpha=0.5, legend=False)
-sns.lineplot(x=df_bho_tg.index, y=(pd.Series(df_bho_monthly['Tgm']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=2, legend=True, label=r'$T_{g}$ 2yr MA: BHO (from daily)')
-#sns.lineplot(x=df_bho_tg.index, y=df_bho_monthly['Tmin'], alpha=0.5, legend=False)
-sns.lineplot(x=df_bho_tg.index, y=(pd.Series(df_bho_monthly['Tmin']).rolling((24),center=True).mean()).ewm(span=(24), adjust=False).mean(), ls='--', lw=2, legend=True, label=r'$T_{n}$ 2yr MA: BHO (from daily)')
-#sns.lineplot(x=df_bho_tg.index, y=df_bho_monthly['Tmax'], alpha=0.5, legend=False)
-sns.lineplot(x=df_bho_tg.index, y=(pd.Series(df_bho_monthly['Tmax']).rolling((24),center=True).mean()).ewm(span=(24), adjust=False).mean(), ls='--', lw=2, legend=True, label=r'$T_{x}$ 2yr MA: BHO (from daily)')
-sns.lineplot(x=df_blue_hill.index, y=df_blue_hill['blue_hill'], marker='.', alpha=0.5, legend=False)
-sns.lineplot(x=df_blue_hill.index, y=(pd.Series(df_blue_hill['blue_hill']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: GloSAT')
-ax.set_ylim(-20,30)
+sns.lineplot(x=df_bho_2828.index, y=(pd.Series(df_bho_2828['T2828']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=5, color='r', alpha=1, zorder=5, legend=True, label=r'$T_{2828}$ 2yr MA: BHO')
+sns.lineplot(x=df_bho_2828.index, y=(pd.Series(df_bho_tg['Tg']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=5, color='b', alpha=1, zorder=5, legend=True, label=r'$T_{g}$ 2yr MA: BHO')
+sns.lineplot(x=df_blue_hill.index, y=(pd.Series(df_blue_hill['blue_hill']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=5, color='g', alpha=1, zorder=5, legend=True, label=r'$T_{g}$ 2yr MA: GloSAT')
+plt.plot(df_ghcnmv4_qcf.index, (pd.Series(df_ghcnmv4_qcf['df_ghcnmv4_qcf']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=2, color='k', zorder=10, label=r'$T_{g}$ 2yr MA: GHCNMv4 (QCF)')
+plt.fill_between(df_ghcnmv4_qcu.index, 6, (pd.Series(df_ghcnmv4_qcu['df_ghcnmv4_qcu']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), color='k', alpha=0.1, zorder=3, label=r'$T_{g}$ 2yr MA: GHCNMv4 (QCU)')
+plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k', zorder=20)
+plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k', zorder=20)
 plt.xlabel('Year', fontsize=fontsize)
 plt.ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
 plt.title(titlestr, fontsize=fontsize)
 plt.tick_params(labelsize=fontsize)    
-plt.legend(loc='lower right', ncol=3, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+plt.legend(loc='upper left', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
 fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
