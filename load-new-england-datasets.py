@@ -103,6 +103,7 @@ load_bho_observations = True
 load_neighbouring_stations = True
 load_glosat = True
 load_ghcnm = True
+load_20crv3 = True
 color_palette = 'viridis_r'
 
 #------------------------------------------------------------------------------
@@ -142,6 +143,76 @@ def is_leap_and_29Feb(s):
 # LOAD: Datasets
 #==============================================================================
 
+if load_20crv3 == True:
+
+    # LOAD: 20CRv3 for BHO at 2m and at 1000 hPa
+        
+    df_20CRv3_bho = pd.read_csv('OUT/df_20CRv3_bho.csv', index_col=0)
+    df_20CRv3_bho.index = pd.to_datetime(df_20CRv3_bho.index)
+    df_20CRv3_new_haven = pd.read_csv('OUT/df_20CRv3_new_haven.csv', index_col=0)
+    df_20CRv3_new_haven.index = pd.to_datetime(df_20CRv3_new_haven.index)
+
+else:
+    
+    #-----------------------------------------------------------------------------
+    # LOAD: 20CRv3 (monthly) temperature at 2m and on pressure levels + spread = mean of SDs (1836-2015)
+    #-----------------------------------------------------------------------------
+
+    # Dataset: https://psl.noaa.gov/data/gridded/data.20thC_ReanV3.pressure.html#caveat
+
+    ds_20CR_2m = xr.open_dataset('DATA/air.2m.mon.mean.nc', decode_cf=True)
+    ds_20CR_2m_spread = xr.open_dataset('DATA/air.2m.mon.mean.spread.nc', decode_cf=True)
+    ds_20CR_hPa = xr.open_dataset('DATA/air.mon.mean.nc', decode_cf=True)
+    ds_20CR_hPa_spread = xr.open_dataset('DATA/air.mon.mean.spread.nc', decode_cf=True)
+#    ds_20CR_2m_tmin = xr.open_dataset('DATA/tmin.2m.mon.mean.nc', decode_cf=True)
+#    ds_20CR_2m_tmax = xr.open_dataset('DATA/tmax.2m.mon.mean.nc', decode_cf=True)
+
+    bho_idx_lat = 90+42
+    bho_idx_lon = 360-71
+    new_haven_idx_lat = 90+41
+    new_haven_idx_lon = 360-73
+
+    # EXTRACT: reanalysis at 2m and at 1000 hPa level and convert to degC
+
+    dr_20CR_2m_bho = ds_20CR_2m.air[:,bho_idx_lat,bho_idx_lon]-273.15
+    dr_20CR_2m_bho_spread = ds_20CR_2m_spread.air[:,bho_idx_lat,bho_idx_lon]
+    dr_20CR_hPa_bho = ds_20CR_hPa.air[:,0,bho_idx_lat,bho_idx_lon]-273.15
+    dr_20CR_hPa_bho_spread = ds_20CR_hPa_spread.air[:,0,bho_idx_lat,bho_idx_lon]
+
+    dr_20CR_2m_new_haven = ds_20CR_2m.air[:,new_haven_idx_lat,new_haven_idx_lon]-273.15
+    dr_20CR_2m_new_haven_spread = ds_20CR_2m_spread.air[:,new_haven_idx_lat,new_haven_idx_lon]
+    dr_20CR_hPa_new_haven = ds_20CR_hPa.air[:,0,new_haven_idx_lat,new_haven_idx_lon]-273.15
+    dr_20CR_hPa_new_haven_spread = ds_20CR_hPa_spread.air[:,0,new_haven_idx_lat,new_haven_idx_lon]
+
+    # CLEAR: reanalysis dataframes that are no longer needed
+
+    ds_20CR_2m = []
+    ds_20CR_2m_spread = []
+    ds_20CR_hPa = []
+    ds_20CR_hPa_spread = []
+    
+    # CONSTRUCT: dataframes
+
+    t = dr_20CR_2m_bho.time.values
+    df_20CRv3_bho = pd.DataFrame({
+        'T(1000hPa)':dr_20CR_hPa_bho.values, 
+        'T(2m)':dr_20CR_2m_bho.values, 
+        'T(1000hPa) spread':dr_20CR_hPa_bho_spread.values, 
+        'T(2m) spread':dr_20CR_2m_bho_spread.values}, index=t)      
+    df_20CRv3_bho.index.name = 'datetime'
+    df_20CRv3_bho.to_csv('df_20CRv3_bho.csv')
+
+    t = dr_20CR_2m_new_haven.time.values
+    df_20CRv3_new_haven = pd.DataFrame({
+        'T(1000hPa)':dr_20CR_hPa_new_haven.values, 
+        'T(2m)':dr_20CR_2m_new_haven.values, 
+        'T(1000hPa) spread':dr_20CR_hPa_new_haven_spread.values, 
+        'T(2m) spread':dr_20CR_2m_new_haven_spread.values}, index=t)      
+    df_20CRv3_new_haven.index.name = 'datetime'
+    df_20CRv3_new_haven.to_csv('df_20CRv3_new_haven.csv')
+
+#==============================================================================
+                      
 if load_ghcnm == True:
     
     # LOAD: GHCNM-v4 (QCU and QCF)
@@ -1100,6 +1171,14 @@ fig, axs = plt.subplots(2,1, figsize=(15,10))
 sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{2828}$')
 sns.lineplot(x=df_bho_2828.index, y=df_bho_tg['Tg'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$')
 sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'] - df_bho_tg['Tg'], ax=axs[1], color='teal')
+
+mask_pre_1891 = df_bho_2828.index < pd.Timestamp('1891-01-01')
+mask_1891_1959 = (df_bho_2828.index >= pd.Timestamp('1891-01-01')) & (df_bho_2828.index < pd.Timestamp('1959-06-01'))
+mask_post_1959 = df_bho_2828.index >= pd.Timestamp('1959-06-01')
+sns.lineplot(x=df_bho_2828.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
+sns.lineplot(x=df_bho_2828.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
+sns.lineplot(x=df_bho_2828.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
+
 plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
 plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
 axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -1150,6 +1229,14 @@ fig, axs = plt.subplots(2,1, figsize=(15,10))
 sns.lineplot(x=df_bho_tg.index, y='Tgm', data=df_bho_monthly, ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ (from daily)')
 sns.lineplot(x=df_bho_tg.index, y='Tg', data=df_bho_monthly, ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ monthly')
 sns.lineplot(x=df_bho_tg.index, y=df_bho_monthly['Tgm']-df_bho_monthly['Tg'], data=df_bho_monthly, ax=axs[1], color='teal')
+
+mask_pre_1891 = df_bho_tg.index < pd.Timestamp('1891-01-01')
+mask_1891_1959 = (df_bho_tg.index >= pd.Timestamp('1891-01-01')) & (df_bho_tg.index < pd.Timestamp('1959-06-01'))
+mask_post_1959 = df_bho_tg.index >= pd.Timestamp('1959-06-01')
+sns.lineplot(x=df_bho_tg.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_monthly['Tgm']-df_bho_monthly['Tg']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
+sns.lineplot(x=df_bho_tg.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_monthly['Tgm']-df_bho_monthly['Tg']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
+sns.lineplot(x=df_bho_tg.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_monthly['Tgm']-df_bho_monthly['Tg']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
+
 axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
 plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
 plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
@@ -1512,15 +1599,66 @@ print('plotting BHO timeseries (all sources) ... ')
 sequential_colors = sns.color_palette(color_palette, 5)
 sns.set_palette(sequential_colors)
 
-figstr = 'bho-timeseries-all-sources-nominmax.png'
+figstr = 'bho-timeseries-all-sources.png'
 titlestr = 'BHO: all sources'
 
 fig, ax = plt.subplots(figsize=(15,10))
+
+# PLOT: 2yr MA smoothed reanalysis
+
+sns.lineplot(x=df_20CRv3_new_haven.index, y=(pd.Series(df_20CRv3_new_haven['T(2m)']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='--', lw=1, color='k', alpha=1, zorder=5, legend=True, label=r'$T_{g}$ 2yr MA: 20CRv3 (2m) at New Haven')
+
+# PLOT: 2yr MA smoothed timeseries
+
+sns.lineplot(x=df_new_haven.index, y=(pd.Series(df_new_haven['new_haven']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, color='lime', alpha=1, zorder=5, legend=True, label=r'$T_{g}$ 2yr MA: New Haven (reference)')
 sns.lineplot(x=df_bho_2828.index, y=(pd.Series(df_bho_2828['T2828']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=5, color='r', alpha=1, zorder=5, legend=True, label=r'$T_{2828}$ 2yr MA: BHO')
 sns.lineplot(x=df_bho_2828.index, y=(pd.Series(df_bho_tg['Tg']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=5, color='b', alpha=1, zorder=5, legend=True, label=r'$T_{g}$ 2yr MA: BHO')
 sns.lineplot(x=df_blue_hill.index, y=(pd.Series(df_blue_hill['blue_hill']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=5, color='g', alpha=1, zorder=5, legend=True, label=r'$T_{g}$ 2yr MA: GloSAT')
 plt.plot(df_ghcnmv4_qcf.index, (pd.Series(df_ghcnmv4_qcf['df_ghcnmv4_qcf']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=2, color='k', zorder=10, label=r'$T_{g}$ 2yr MA: GHCNMv4 (QCF)')
 plt.fill_between(df_ghcnmv4_qcu.index, 6, (pd.Series(df_ghcnmv4_qcu['df_ghcnmv4_qcu']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), color='k', alpha=0.1, zorder=3, label=r'$T_{g}$ 2yr MA: GHCNMv4 (QCU)')
+
+# PLOT: segment means
+
+mask_pre_1891 = df_new_haven.index < pd.Timestamp('1891-01-01')
+mask_1891_1959 = (df_new_haven.index >= pd.Timestamp('1891-01-01')) & (df_new_haven.index < pd.Timestamp('1959-06-01'))
+mask_post_1959 = df_new_haven.index >= pd.Timestamp('1959-06-01')
+sns.lineplot(x=df_new_haven.index[mask_pre_1891], y=mask_pre_1891.sum()*[df_new_haven['new_haven'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='lime')            
+sns.lineplot(x=df_new_haven.index[mask_1891_1959], y=mask_1891_1959.sum()*[df_new_haven['new_haven'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='lime')            
+sns.lineplot(x=df_new_haven.index[mask_post_1959], y=mask_post_1959.sum()*[df_new_haven['new_haven'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='lime')            
+
+mask_pre_1891 = df_bho_2828.index < pd.Timestamp('1891-01-01')
+mask_1891_1959 = (df_bho_2828.index >= pd.Timestamp('1891-01-01')) & (df_bho_2828.index < pd.Timestamp('1959-06-01'))
+mask_post_1959 = df_bho_2828.index >= pd.Timestamp('1959-06-01')
+sns.lineplot(x=df_bho_2828.index[mask_pre_1891], y=mask_pre_1891.sum()*[df_bho_2828['T2828'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='r')            
+sns.lineplot(x=df_bho_2828.index[mask_1891_1959], y=mask_1891_1959.sum()*[df_bho_2828['T2828'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='r')            
+sns.lineplot(x=df_bho_2828.index[mask_post_1959], y=mask_post_1959.sum()*[df_bho_2828['T2828'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='r')            
+sns.lineplot(x=df_bho_2828.index[mask_pre_1891], y=mask_pre_1891.sum()*[df_bho_tg['Tg'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='b')            
+sns.lineplot(x=df_bho_2828.index[mask_1891_1959], y=mask_1891_1959.sum()*[df_bho_tg['Tg'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='b')            
+sns.lineplot(x=df_bho_2828.index[mask_post_1959], y=mask_post_1959.sum()*[df_bho_tg['Tg'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='b')            
+
+mask_pre_1891 = df_blue_hill.index < pd.Timestamp('1891-01-01')
+mask_1891_1959 = (df_blue_hill.index >= pd.Timestamp('1891-01-01')) & (df_blue_hill.index < pd.Timestamp('1959-06-01'))
+mask_post_1959 = df_blue_hill.index >= pd.Timestamp('1959-06-01')
+sns.lineplot(x=df_blue_hill.index[mask_pre_1891], y=mask_pre_1891.sum()*[df_blue_hill['blue_hill'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='g')            
+sns.lineplot(x=df_blue_hill.index[mask_1891_1959], y=mask_1891_1959.sum()*[df_blue_hill['blue_hill'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='g')            
+sns.lineplot(x=df_blue_hill.index[mask_post_1959], y=mask_post_1959.sum()*[df_blue_hill['blue_hill'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='g')            
+
+mask_pre_1891 = df_ghcnmv4_qcf.index < pd.Timestamp('1891-01-01')
+mask_1891_1959 = (df_ghcnmv4_qcf.index >= pd.Timestamp('1891-01-01')) & (df_ghcnmv4_qcf.index < pd.Timestamp('1959-06-01'))
+mask_post_1959 = df_ghcnmv4_qcf.index >= pd.Timestamp('1959-06-01')
+sns.lineplot(x=df_ghcnmv4_qcf.index[mask_pre_1891], y=mask_pre_1891.sum()*[df_ghcnmv4_qcf['df_ghcnmv4_qcf'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='k')            
+sns.lineplot(x=df_ghcnmv4_qcf.index[mask_1891_1959], y=mask_1891_1959.sum()*[df_ghcnmv4_qcf['df_ghcnmv4_qcf'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='k')            
+sns.lineplot(x=df_ghcnmv4_qcf.index[mask_post_1959], y=mask_post_1959.sum()*[df_ghcnmv4_qcf['df_ghcnmv4_qcf'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='k')            
+
+mask_pre_1891 = df_ghcnmv4_qcu.index < pd.Timestamp('1891-01-01')
+mask_1891_1959 = (df_ghcnmv4_qcu.index >= pd.Timestamp('1891-01-01')) & (df_ghcnmv4_qcu.index < pd.Timestamp('1959-06-01'))
+mask_post_1959 = df_ghcnmv4_qcu.index >= pd.Timestamp('1959-06-01')
+sns.lineplot(x=df_ghcnmv4_qcu.index[mask_pre_1891], y=mask_pre_1891.sum()*[df_ghcnmv4_qcu['df_ghcnmv4_qcu'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='k', alpha=0.3)            
+sns.lineplot(x=df_ghcnmv4_qcu.index[mask_1891_1959], y=mask_1891_1959.sum()*[df_ghcnmv4_qcu['df_ghcnmv4_qcu'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='k', alpha=0.3)            
+sns.lineplot(x=df_ghcnmv4_qcu.index[mask_post_1959], y=mask_post_1959.sum()*[df_ghcnmv4_qcu['df_ghcnmv4_qcu'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='k', alpha=0.3)            
+
+# PLOT: breakpoints
+
 plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k', zorder=20)
 plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k', zorder=20)
 plt.xlabel('Year', fontsize=fontsize)
