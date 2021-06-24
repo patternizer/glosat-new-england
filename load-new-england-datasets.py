@@ -4,8 +4,8 @@
 #------------------------------------------------------------------------------
 # PROGRAM: load-new-england-datasets.py
 #------------------------------------------------------------------------------
-# Version 0.4
-# 19 June, 2021
+# Version 0.5
+# 23 June, 2021
 # Michael Taylor
 # https://patternizer.github.io
 # patternizer AT gmail DOT com
@@ -105,6 +105,11 @@ load_glosat = True
 load_ghcnm = True
 load_20crv3 = True
 color_palette = 'viridis_r'
+use_fahrenheit = True
+if use_fahrenheit: 
+    temperature_unit = 'F'
+else:
+    temperature_unit = 'C'
 
 #------------------------------------------------------------------------------
 # METHODS: 
@@ -129,11 +134,11 @@ def linear_regression_ols(x,y):
     return t, ypred, slope, intercept, mse, r2
 
 def fahrenheit_to_centigrade(x):
-    y = (5/9) * (x - 32)
+    y = (5.0/9.0) * (x - 32.0)
     return y
 
 def centigrade_to_fahrenheit(x):
-    y = (x * (5/9)) + 32
+    y = (x * (9.0/5.0)) + 32.0
     return y
 
 def is_leap_and_29Feb(s):
@@ -164,8 +169,8 @@ else:
     ds_20CR_2m_spread = xr.open_dataset('DATA/air.2m.mon.mean.spread.nc', decode_cf=True)
     ds_20CR_hPa = xr.open_dataset('DATA/air.mon.mean.nc', decode_cf=True)
     ds_20CR_hPa_spread = xr.open_dataset('DATA/air.mon.mean.spread.nc', decode_cf=True)
-#    ds_20CR_2m_tmin = xr.open_dataset('DATA/tmin.2m.mon.mean.nc', decode_cf=True)
-#    ds_20CR_2m_tmax = xr.open_dataset('DATA/tmax.2m.mon.mean.nc', decode_cf=True)
+#   ds_20CR_2m_tmin = xr.open_dataset('DATA/tmin.2m.mon.mean.nc', decode_cf=True)
+#   ds_20CR_2m_tmax = xr.open_dataset('DATA/tmax.2m.mon.mean.nc', decode_cf=True)
 
     bho_idx_lat = 90+42
     bho_idx_lon = 360-71
@@ -315,27 +320,27 @@ if load_glosat == True:
     stationcode_kingston = '753011'
     stationcode_plymouth_kingston = '756213'
 
-#   da_salem_cgar = df_temp.columns                                                      # USC00197124	SALEM COAST GUARD AIR STATION, MA US 1948-1967
-#   da_salem_b = df_temp.columns                                                         # USC00197122	SALEM B, MA US 1885-1909
-#   da_boston = df_temp.columns                                                          # USW00014739	BOSTON, MA US 1936-2021
-#   da_new_salem = df_temp.columns                                                       # USC00195306	NEW SALEM, MA US 1897-1998
-#   da_boston_city_wso = df_temp[df_temp['stationcode']==stationcode_boston_city_wso]    # USW00094701	BOSTON CITY WEATHER SERVICE OFFICE, MA US 1893-1935
-    da_blue_hill = df_temp[df_temp['stationcode']==stationcode_blue_hill]                # USC00190736	BLUE HILL COOP, MA US 1893-2021
-    da_bedford = df_temp[df_temp['stationcode']==stationcode_bedford]                    # USC00190538	BEDFORD, MA US 1893-1923
-    da_lawrence = df_temp[df_temp['stationcode']==stationcode_lawrence]                  # USC00194105	LAWRENCE, MA US 1893-2021
-    da_amherst = df_temp[df_temp['stationcode']==stationcode_amherst]                    # USC00190120	AMHERST, MA US 1893-2021
-    da_providence_wso = df_temp[df_temp['stationcode']==stationcode_providence_wso]      # USC00376712	PROVIDENCE 2, RI US 1893-1913
-#   da_worcester = df_temp.columns                                                       # USC00199928	WORCESTER, MA US 1892-1962
-    da_new_haven = df_temp[df_temp['stationcode']==stationcode_new_haven]                                                       # USC00199928	WORCESTER, MA US 1892-1962
+#   da_salem_cgar = df_temp.columns                                                         # USC00197124	SALEM COAST GUARD AIR STATION, MA US 1948-1967
+#   da_salem_b = df_temp.columns                                                            # USC00197122	SALEM B, MA US 1885-1909
+#   da_boston = df_temp.columns                                                             # USW00014739	BOSTON, MA US 1936-2021
+#   da_new_salem = df_temp.columns                                                          # USC00195306	NEW SALEM, MA US 1897-1998
+#   da_boston_city_wso = df_temp[df_temp['stationcode']==stationcode_boston_city_wso]       # USW00094701	BOSTON CITY WEATHER SERVICE OFFICE, MA US 1893-1935
+    da_blue_hill = df_temp[df_temp['stationcode']==stationcode_blue_hill]                   # USC00190736	BLUE HILL COOP, MA US 1893-2021
+    da_bedford = df_temp[df_temp['stationcode']==stationcode_bedford]                       # USC00190538	BEDFORD, MA US 1893-1923
+    da_lawrence = df_temp[df_temp['stationcode']==stationcode_lawrence]                     # USC00194105	LAWRENCE, MA US 1893-2021
+    da_amherst = df_temp[df_temp['stationcode']==stationcode_amherst]                       # USC00190120	AMHERST, MA US 1893-2021
+    da_providence_wso = df_temp[df_temp['stationcode']==stationcode_providence_wso]         # USC00376712	PROVIDENCE 2, RI US 1893-1913
+#   da_worcester = df_temp.columns                                                          # USC00199928	WORCESTER, MA US 1892-1962
+    da_new_haven = df_temp[df_temp['stationcode']==stationcode_new_haven]                   # USC00199928	WORCESTER, MA US 1892-1962
 
-    da_new_bedford = df_temp[df_temp['stationcode']==stationcode_new_bedford]                                                       # USC00199928	WORCESTER, MA US 1892-1962
-    da_taunton = df_temp[df_temp['stationcode']==stationcode_taunton]                                                       # USC00199928	WORCESTER, MA US 1892-1962
-    da_reading = df_temp[df_temp['stationcode']==stationcode_reading]                                                       # USC00199928	WORCESTER, MA US 1892-1962
-    da_provincetown = df_temp[df_temp['stationcode']==stationcode_provincetown]                                                       # USC00199928	WORCESTER, MA US 1892-1962
-    da_walpole_2 = df_temp[df_temp['stationcode']==stationcode_walpole_2]                                                       # USC00199928	WORCESTER, MA US 1892-1962
-    da_west_medway = df_temp[df_temp['stationcode']==stationcode_west_medway]                                                       # USC00199928	WORCESTER, MA US 1892-1962
-    da_kingston = df_temp[df_temp['stationcode']==stationcode_kingston]                                                       # USC00199928	WORCESTER, MA US 1892-1962
-    da_plymouth_kingston = df_temp[df_temp['stationcode']==stationcode_plymouth_kingston]                                                       # USC00199928	WORCESTER, MA US 1892-1962
+    da_new_bedford = df_temp[df_temp['stationcode']==stationcode_new_bedford]            
+    da_taunton = df_temp[df_temp['stationcode']==stationcode_taunton]                       # USC00199928	WORCESTER, MA US 1892-1962
+    da_reading = df_temp[df_temp['stationcode']==stationcode_reading]                       # USC00199928	WORCESTER, MA US 1892-1962
+    da_provincetown = df_temp[df_temp['stationcode']==stationcode_provincetown]             # USC00199928	WORCESTER, MA US 1892-1962
+    da_walpole_2 = df_temp[df_temp['stationcode']==stationcode_walpole_2]                   # USC00199928	WORCESTER, MA US 1892-1962
+    da_west_medway = df_temp[df_temp['stationcode']==stationcode_west_medway]               # USC00199928	WORCESTER, MA US 1892-1962
+    da_kingston = df_temp[df_temp['stationcode']==stationcode_kingston]                     # USC00199928	WORCESTER, MA US 1892-1962
+    da_plymouth_kingston = df_temp[df_temp['stationcode']==stationcode_plymouth_kingston]   # USC00199928	WORCESTER, MA US 1892-1962
 
     ts = np.array(da_blue_hill.groupby('year').mean().iloc[:,0:12]).ravel()
     t = pd.date_range(start=str(da_blue_hill.year.iloc[0]), periods=len(ts), freq='MS')
@@ -891,8 +896,14 @@ else:
 
 #==============================================================================
     
-if load_bho_observations == True:
-       
+if load_bho_observations == True:       
+    
+#    if temperature_unit == 'fahrenheit':
+#        df_bho_2828 = pd.read_csv('OUT/df_bho_2828_degF.csv', index_col=0)
+#        df_bho_tg = pd.read_csv('OUT/df_bho_tg_degF.csv', index_col=0)        
+#    else:
+#        df_bho_2828 = pd.read_csv('OUT/df_bho_2828_degC.csv', index_col=0)
+#        df_bho_tg = pd.read_csv('OUT/df_bho_tg_degC.csv', index_col=0)
     df_bho_2828 = pd.read_csv('OUT/df_bho_2828.csv', index_col=0)
     df_bho_tg = pd.read_csv('OUT/df_bho_tg.csv', index_col=0)
     df_bho_daily = pd.read_csv('OUT/df_bho_daily.csv', index_col=0)
@@ -908,7 +919,7 @@ else:
     #------------------------------------------------------------------------------
     
 #   da = pd.read_excel('DATA/BlueHillObservatory_Temperature_Mean_2828_Monthly_v2.0.xlsx', header=5, use_cols=['A':'N'], sheet_name='Mean Temperature deg C')    
-    da = pd.read_table('DATA/bho-2828.dat', index_col=0) # '2828' monthly average
+    da = pd.read_table('DATA/bho-2828-degF.dat', index_col=0) # '2828' monthly average       
     ts_monthly = []    
     for i in range(len(da)):                
         monthly = da.iloc[i,0:]
@@ -918,7 +929,8 @@ else:
     df_bho_2828 = pd.DataFrame({'T2828':ts_monthly}, index=t_monthly)
     df_bho_2828.index.name = 'datetime'
 
-    da = pd.read_table('DATA/bho-tg.dat', index_col=0) # Tg monthly average
+#   da = pd.read_table('DATA/bho-tg.dat', index_col=0) # Tg monthly average
+    da = pd.read_table('DATA/bho-tg-degF.dat', index_col=0) # Tg monthly average
     ts_monthly = []    
     for i in range(len(da)):                
         monthly = da.iloc[i,0:]
@@ -938,7 +950,6 @@ else:
         daily = da.iloc[i,0:]
         ts = ts + daily.to_list()    
     ts = np.array(ts)   
-    ts = fahrenheit_to_centigrade(ts)   
 
     # HANDLE: leap days
 
@@ -955,7 +966,6 @@ else:
         daily = da.iloc[i,0:]
         ts = ts + daily.to_list()    
     ts = np.array(ts)   
-    ts = fahrenheit_to_centigrade(ts)   
 
     # HANDLE: leap days
  
@@ -1060,7 +1070,7 @@ else:
         else:
             ymin = xmin
             ymax = xmax
-            yavg = xavg
+            yavg = xavg                        
         df_station = pd.DataFrame(columns = df_reordered.columns, index=t)    
         df_station['TMIN'] = ymin
         df_station['TMAX'] = ymax
@@ -1119,18 +1129,27 @@ print('plotting Holyoke (+ Farrar) osbervations ...')
     
 figstr = 'salem(MA)-holyoke-cambridge(MA)-farrar.png'
 titlestr = 'Salem, MA: Holyoke (sub-daily) and Cambridge, MA: Farrar (monthly mean) observations'
-
+        
 fig, axs = plt.subplots(figsize=(15,10))
-sns.lineplot(x=df_holyoke.index, y='T(08:00)', data=df_holyoke, ax=axs, marker='.', color='b', alpha=1.0, label='Salem, MA: T(08:00)')
-sns.lineplot(x=df_holyoke.index, y='T(13:00)', data=df_holyoke, ax=axs, marker='.', color='r', alpha=1.0, label='Salem, MA: T(13:00)')
-sns.lineplot(x=df_holyoke.index, y='T(22:00)', data=df_holyoke, ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(22:00)')
-sns.lineplot(x=df_holyoke.index, y='T(sunset)', data=df_holyoke, ax=axs, marker='.', color='orange', alpha=1.0, label='Salem, MA: T(sunset)')
-sns.lineplot(x=df_farrar.index, y=df_farrar['Tmean'], ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
+
+if use_fahrenheit == True:
+    sns.lineplot(x=df_holyoke.index, y=centigrade_to_fahrenheit(df_holyoke['T(08:00)']), ax=axs, marker='.', color='b', alpha=1.0, label='Salem, MA: T(08:00)')
+    sns.lineplot(x=df_holyoke.index, y=centigrade_to_fahrenheit(df_holyoke['T(13:00)']), ax=axs, marker='.', color='r', alpha=1.0, label='Salem, MA: T(13:00)')
+    sns.lineplot(x=df_holyoke.index, y=centigrade_to_fahrenheit(df_holyoke['T(22:00)']), ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(22:00)')
+    sns.lineplot(x=df_holyoke.index, y=centigrade_to_fahrenheit(df_holyoke['T(sunset)']), ax=axs, marker='.', color='orange', alpha=1.0, label='Salem, MA: T(sunset)')
+    sns.lineplot(x=df_farrar.index, y=centigrade_to_fahrenheit(df_farrar['Tmean']), ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
+    axs.set_ylim(-20,110)
+else:
+    sns.lineplot(x=df_holyoke.index, y=df_holyoke['T(08:00)'], ax=axs, marker='.', color='b', alpha=1.0, label='Salem, MA: T(08:00)')
+    sns.lineplot(x=df_holyoke.index, y=df_holyoke['T(13:00)'], ax=axs, marker='.', color='r', alpha=1.0, label='Salem, MA: T(13:00)')
+    sns.lineplot(x=df_holyoke.index, y=df_holyoke['T(22:00)'], ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(22:00)')
+    sns.lineplot(x=df_holyoke.index, y=df_holyoke['T(sunset)'], ax=axs, marker='.', color='orange', alpha=1.0, label='Salem, MA: T(sunset)')
+    sns.lineplot(x=df_farrar.index, y=df_farrar['Tmean'], ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
+    axs.set_ylim(-30,40)
 axs.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
 axs.set_xlim(pd.Timestamp('1785-01-01'),pd.Timestamp('1835-01-01'))
-axs.set_ylim(-30,40)
 axs.set_xlabel('Year', fontsize=fontsize)
-axs.set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+axs.set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
 axs.set_title(titlestr, fontsize=fontsize)
 axs.tick_params(labelsize=fontsize)    
 fig.tight_layout()
@@ -1145,15 +1164,23 @@ figstr = 'salem(MA)-wigglesworth-cambridge(MA)-farrar.png'
 titlestr = 'Salem, MA: Wigglesworth (sub-daily) and Cambridge, MA: Farrar (monthly mean) observations'
 
 fig, axs = plt.subplots(figsize=(15,10))
-sns.lineplot(x=df_wigglesworth.index, y='T(08:00)', data=df_wigglesworth, ax=axs, marker='.', color='b', alpha=1.0, label='Salem, MA: T(08:00)')
-sns.lineplot(x=df_wigglesworth.index, y='T(13:00)', data=df_wigglesworth, ax=axs, marker='.', color='r', alpha=1.0, label='Salem, MA: T(13:00)')
-sns.lineplot(x=df_wigglesworth.index, y='T(21:00)', data=df_wigglesworth, ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(21:00)')
-sns.lineplot(x=df_farrar.index, y=df_farrar['Tmean'], ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
+
+if use_fahrenheit == True:
+    sns.lineplot(x=df_wigglesworth.index, y=centigrade_to_fahrenheit(df_wigglesworth['T(08:00)']), ax=axs, marker='.', color='b', alpha=1.0, label='Salem, MA: T(08:00)')
+    sns.lineplot(x=df_wigglesworth.index, y=centigrade_to_fahrenheit(df_wigglesworth['T(13:00)']), ax=axs, marker='.', color='r', alpha=1.0, label='Salem, MA: T(13:00)')
+    sns.lineplot(x=df_wigglesworth.index, y=centigrade_to_fahrenheit(df_wigglesworth['T(21:00)']), ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(21:00)')
+    sns.lineplot(x=df_farrar.index, y=centigrade_to_fahrenheit(df_farrar['Tmean']), ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
+    axs.set_ylim(-20,110)
+else:
+    sns.lineplot(x=df_wigglesworth.index, y='T(08:00)', data=df_wigglesworth, ax=axs, marker='.', color='b', alpha=1.0, label='Salem, MA: T(08:00)')
+    sns.lineplot(x=df_wigglesworth.index, y='T(13:00)', data=df_wigglesworth, ax=axs, marker='.', color='r', alpha=1.0, label='Salem, MA: T(13:00)')
+    sns.lineplot(x=df_wigglesworth.index, y='T(21:00)', data=df_wigglesworth, ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(21:00)')
+    sns.lineplot(x=df_farrar.index, y=df_farrar['Tmean'], ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
+    axs.set_ylim(-30,40)
 axs.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
 axs.set_xlim(pd.Timestamp('1785-01-01'),pd.Timestamp('1835-01-01'))
-axs.set_ylim(-30,40)
 axs.set_xlabel('Year', fontsize=fontsize)
-axs.set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+axs.set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
 axs.set_title(titlestr, fontsize=fontsize)
 axs.tick_params(labelsize=fontsize)    
 fig.tight_layout()
@@ -1171,27 +1198,65 @@ fig, axs = plt.subplots(2,1, figsize=(15,10))
 sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{2828}$')
 sns.lineplot(x=df_bho_2828.index, y=df_bho_tg['Tg'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$')
 sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'] - df_bho_tg['Tg'], ax=axs[1], color='teal')
-
 mask_pre_1891 = df_bho_2828.index < pd.Timestamp('1891-01-01')
 mask_1891_1959 = (df_bho_2828.index >= pd.Timestamp('1891-01-01')) & (df_bho_2828.index < pd.Timestamp('1959-06-01'))
 mask_post_1959 = df_bho_2828.index >= pd.Timestamp('1959-06-01')
 sns.lineplot(x=df_bho_2828.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
 sns.lineplot(x=df_bho_2828.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
 sns.lineplot(x=df_bho_2828.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
-
 plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
 plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
 axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
 axs[0].set_xlabel('', fontsize=fontsize)
-axs[0].set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
 axs[0].set_title(titlestr, fontsize=fontsize)
 axs[0].tick_params(labelsize=fontsize)    
-axs[0].set_ylim(-20,30)
 axs[1].sharex(axs[0])
 axs[1].tick_params(labelsize=fontsize)    
 axs[1].set_xlabel('Year', fontsize=fontsize)
-axs[1].set_ylabel(r'$T_{2828}$-$T_{g}$, $^{\circ}$C', fontsize=fontsize)
-axs[1].set_ylim(-1.5,0.5)
+axs[1].set_ylabel(r'$T_{2828}$-$T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+if use_fahrenheit == True:
+    axs[0].set_ylim(0,80)
+    axs[1].set_ylim(-3,2)
+else:
+    axs[0].set_ylim(-20,30)
+    axs[1].set_ylim(-1.5,0.5)
+fig.tight_layout()
+plt.savefig(figstr, dpi=300)
+plt.close('all')
+
+# PLOT: BHO: T2828 (monthly) versus GloSAT (monthly)
+
+print('plotting BHO: T2828 (monthly) versus GloSAT Tg (monthly)...')
+    
+figstr = 'bho-t2828(monthly)-vs-glosat-tg(monthly)-1885-1955-degF.png'
+titlestr = 'Blue Hill Observatory (BHO): $T_{2828}$ (monthly) versus GloSAT $T_g$ (monthly)'
+
+df_blue_hill_degF = centigrade_to_fahrenheit(df_blue_hill)
+df_blue_hill_1885_1955 = df_blue_hill_degF[ (df_blue_hill_degF.index>=pd.to_datetime('1885-01-01')) & (df_blue_hill_degF.index<=pd.to_datetime('1955-12-01')) ]
+df_bho_1885_1955 = df_bho_2828[ (df_bho_2828.index>=pd.to_datetime('1885-01-01')) & (df_bho_2828.index<=pd.to_datetime('1955-12-01')) ]
+
+fig, axs = plt.subplots(2,1, figsize=(15,10))
+sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{2828}$')
+sns.lineplot(x=df_blue_hill_1885_1955.index, y=df_blue_hill_1885_1955['blue_hill'].values, ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$: GloSAT')
+sns.lineplot(x=df_blue_hill_1885_1955.index, y=df_bho_1885_1955['T2828'] - df_blue_hill_1885_1955['blue_hill'].values, ax=axs[1], color='teal')
+axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+axs[0].set_xlabel('', fontsize=fontsize)
+axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+axs[0].set_title(titlestr, fontsize=fontsize)
+axs[0].tick_params(labelsize=fontsize)    
+axs[0].set_xlim(pd.to_datetime('1885-01-01'),pd.to_datetime('1956-01-01'))
+axs[1].sharex(axs[0])
+axs[1].tick_params(labelsize=fontsize)    
+axs[1].set_xlabel('Year', fontsize=fontsize)
+axs[1].set_ylabel(r'$T_{2828}$-$T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+axs[1].set_xlim(pd.to_datetime('1885-01-01'),pd.to_datetime('1956-01-01'))
+if use_fahrenheit == True:
+    axs[0].set_ylim(0,80)
+    axs[1].set_ylim(-3,2)
+else:
+    axs[0].set_ylim(-20,30)
+    axs[1].set_ylim(-1.5,0.5)
 fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
@@ -1207,9 +1272,13 @@ fig, ax = plt.subplots(figsize=(15,10))
 kwargs = {'levels': np.arange(0, 0.15, 0.01)}
 sns.kdeplot(df_bho_2828['T2828'], color='r', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{2828}$')
 sns.kdeplot(df_bho_tg['Tg'], color='b', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$')
-ax.set_xlim(-20,30)
-ax.set_ylim(0,0.05)
-plt.xlabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+if use_fahrenheit == True:
+    ax.set_xlim(0,90)
+    ax.set_ylim(0,0.03)
+else:
+    ax.set_xlim(-20,40)
+    ax.set_ylim(0,0.05)
+plt.xlabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
 plt.ylabel('KDE', fontsize=fontsize)
 plt.title(titlestr, fontsize=fontsize)
 plt.tick_params(labelsize=fontsize)    
@@ -1229,27 +1298,29 @@ fig, axs = plt.subplots(2,1, figsize=(15,10))
 sns.lineplot(x=df_bho_tg.index, y='Tgm', data=df_bho_monthly, ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ (from daily)')
 sns.lineplot(x=df_bho_tg.index, y='Tg', data=df_bho_monthly, ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ monthly')
 sns.lineplot(x=df_bho_tg.index, y=df_bho_monthly['Tgm']-df_bho_monthly['Tg'], data=df_bho_monthly, ax=axs[1], color='teal')
-
 mask_pre_1891 = df_bho_tg.index < pd.Timestamp('1891-01-01')
 mask_1891_1959 = (df_bho_tg.index >= pd.Timestamp('1891-01-01')) & (df_bho_tg.index < pd.Timestamp('1959-06-01'))
 mask_post_1959 = df_bho_tg.index >= pd.Timestamp('1959-06-01')
 sns.lineplot(x=df_bho_tg.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_monthly['Tgm']-df_bho_monthly['Tg']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
 sns.lineplot(x=df_bho_tg.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_monthly['Tgm']-df_bho_monthly['Tg']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
 sns.lineplot(x=df_bho_tg.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_monthly['Tgm']-df_bho_monthly['Tg']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
-
 axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
 plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
 plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
 axs[0].set_xlabel('', fontsize=fontsize)
-axs[0].set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
 axs[0].set_title(titlestr, fontsize=fontsize)
 axs[0].tick_params(labelsize=fontsize)   
-axs[0].set_ylim(-20,30)
 axs[1].sharex(axs[0]) 
 axs[1].tick_params(labelsize=fontsize)    
 axs[1].set_xlabel('Year', fontsize=fontsize)
-axs[1].set_ylabel(r'$T_{g}$ (from daily) - $T_{g}$ (monthly), $^{\circ}$C', fontsize=fontsize)
-axs[1].set_ylim(-0.1,0.1)
+axs[1].set_ylabel(r'$T_{g}$ (from daily) - $T_{g}$ (monthly), $^{\circ}$' + temperature_unit, fontsize=fontsize)
+if use_fahrenheit == True:
+    axs[0].set_ylim(0,80)
+    axs[1].set_ylim(-0.1,0.1)
+else:
+    axs[0].set_ylim(-20,30)
+    axs[1].set_ylim(-0.1,0.1)
 fig.tight_layout()
 plt.savefig(figstr, dpi=300)
 plt.close('all')
@@ -1265,9 +1336,13 @@ fig, ax = plt.subplots(figsize=(15,10))
 kwargs = {'levels': np.arange(0, 0.15, 0.01)}
 sns.kdeplot(df_bho_monthly['Tgm'], color='r', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$ (from daily)')
 sns.kdeplot(df_bho_monthly['Tg'], color='b', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$ monthly')
-ax.set_xlim(-20,30)
-ax.set_ylim(0,0.05)
-plt.xlabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+if use_fahrenheit == True:
+    ax.set_xlim(0,90)
+    ax.set_ylim(0,0.03)
+else:
+    ax.set_xlim(-20,40)
+    ax.set_ylim(0,0.05)
+plt.xlabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
 plt.ylabel('KDE', fontsize=fontsize)
 plt.title(titlestr, fontsize=fontsize)
 plt.tick_params(labelsize=fontsize)    
@@ -1307,9 +1382,14 @@ for i in range(nrows*ncols):
     if i > (Nstations-1):
         axs[-1,-1].axis('off')
         continue
-    ymin = dg[dg['STATION']==dg['STATION'].unique()[i]]['TMIN']
-    ymax = dg[dg['STATION']==dg['STATION'].unique()[i]]['TMAX']
-    yavg = dg[dg['STATION']==dg['STATION'].unique()[i]]['TAVG']
+    if use_fahrenheit == True:
+        ymin = centigrade_to_fahrenheit( dg[dg['STATION']==dg['STATION'].unique()[i]]['TMIN'] )
+        ymax = centigrade_to_fahrenheit(dg[dg['STATION']==dg['STATION'].unique()[i]]['TMAX'] )
+        yavg = centigrade_to_fahrenheit(dg[dg['STATION']==dg['STATION'].unique()[i]]['TAVG'] )
+    else:
+        ymin = dg[dg['STATION']==dg['STATION'].unique()[i]]['TMIN']
+        ymax = dg[dg['STATION']==dg['STATION'].unique()[i]]['TMAX']
+        yavg = dg[dg['STATION']==dg['STATION'].unique()[i]]['TAVG']
     stationcode = dg[dg['STATION']==dg['STATION'].unique()[i]]['STATION'][0]     
     t = dg[dg['STATION']==dg['STATION'].unique()[i]].index
     c = i%ncols
@@ -1318,10 +1398,14 @@ for i in range(nrows*ncols):
     g = sns.kdeplot(ymin, ax=axs[r,c], color='b', shade=True, alpha=0.5, legend=True, label=r'$T_{n}$')
     sns.kdeplot(yavg, ax=axs[r,c], color='purple', shade=True, alpha=0.5, legend=True, label=r'$T_{g}$')
     sns.kdeplot(ymax, ax=axs[r,c], color='r', shade=True, alpha=0.5, legend=True, label=r'$T_{x}$')   
-    g.axes.set_xlim(-30,40)
-    g.axes.set_ylim(0,0.05)
+    if use_fahrenheit == True:
+        g.axes.set_xlim(-20,110)
+        g.axes.set_ylim(0,0.03)
+    else:
+        g.axes.set_xlim(-20,40)
+        g.axes.set_ylim(0,0.05)    
     if (r+1) == nrows:
-        g.axes.set_xlabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+        g.axes.set_xlabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     else:
         g.axes.set_xlabel('', fontsize=fontsize)
         g.axes.set_xticklabels([])  
@@ -1355,9 +1439,14 @@ for i in range(nrows*ncols):
     if i > (Nstations-1):
         axs[-1,-1].axis('off')
         continue
-    ymin = dg[dg['STATION']==dg['STATION'].unique()[i]]['TMIN']
-    ymax = dg[dg['STATION']==dg['STATION'].unique()[i]]['TMAX']
-    yavg = dg[dg['STATION']==dg['STATION'].unique()[i]]['TAVG']
+    if use_fahrenheit == True:
+        ymin = centigrade_to_fahrenheit( dg[dg['STATION']==dg['STATION'].unique()[i]]['TMIN'] ) 
+        ymax = centigrade_to_fahrenheit( dg[dg['STATION']==dg['STATION'].unique()[i]]['TMAX'] ) 
+        yavg = centigrade_to_fahrenheit( dg[dg['STATION']==dg['STATION'].unique()[i]]['TAVG'] ) 
+    else:
+        ymin = dg[dg['STATION']==dg['STATION'].unique()[i]]['TMIN']
+        ymax = dg[dg['STATION']==dg['STATION'].unique()[i]]['TMAX']
+        yavg = dg[dg['STATION']==dg['STATION'].unique()[i]]['TAVG']
     stationcode = dg[dg['STATION']==dg['STATION'].unique()[i]]['STATION'][0]     
     t = dg[dg['STATION']==dg['STATION'].unique()[i]].index
     c = i%ncols
@@ -1372,14 +1461,17 @@ for i in range(nrows*ncols):
     g = sns.lineplot(x=t, y=ymin_yearly.TMIN.values, ax=axs[r,c], marker='.', color='b', alpha=0.5, label='$T_{n}$')
     sns.lineplot(x=t, y=yavg_yearly.TAVG.values, ax=axs[r,c], marker='.', color='purple', alpha=0.5, label='$T_{g}$')
     sns.lineplot(x=t, y=ymax_yearly.TMAX.values, ax=axs[r,c], marker='.', color='r', alpha=0.5, label='$T_{x}$')
-    g.axes.set_ylim(-30,40)
+    if use_fahrenheit == True:
+        g.axes.set_ylim(0,90)
+    else:
+        g.axes.set_ylim(-20,40)    
     g.axes.set_xlim(pd.Timestamp('1880-01-01'),pd.Timestamp('2020-01-01'))
     if (r+1) == nrows:
         g.axes.set_xlabel('Year', fontsize=fontsize)
     else:
         g.axes.set_xticklabels([])  
     if c == 0:
-        g.axes.set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+        g.axes.set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     else:
         g.axes.set_yticklabels([])
     g.axes.set_title('STATION='+stationcode, fontsize=fontsize)
@@ -1407,9 +1499,14 @@ for i in range(nrows*ncols):
     if i > (Nstations-1):
         axs[-1,-1].axis('off')
         continue
-    ymin = dg[dg['STATION']==dg['STATION'].unique()[i]]['TMIN']
-    ymax = dg[dg['STATION']==dg['STATION'].unique()[i]]['TMAX']
-    yavg = dg[dg['STATION']==dg['STATION'].unique()[i]]['TAVG']
+    if use_fahrenheit == True:
+        ymin = centigrade_to_fahrenheit( dg[dg['STATION']==dg['STATION'].unique()[i]]['TMIN'] )
+        ymax = centigrade_to_fahrenheit( dg[dg['STATION']==dg['STATION'].unique()[i]]['TMAX'] )
+        yavg = centigrade_to_fahrenheit( dg[dg['STATION']==dg['STATION'].unique()[i]]['TAVG'] )
+    else:            
+        ymin = dg[dg['STATION']==dg['STATION'].unique()[i]]['TMIN']
+        ymax = dg[dg['STATION']==dg['STATION'].unique()[i]]['TMAX']
+        yavg = dg[dg['STATION']==dg['STATION'].unique()[i]]['TAVG']
     stationcode = dg[dg['STATION']==dg['STATION'].unique()[i]]['STATION'][0]     
     t = dg[dg['STATION']==dg['STATION'].unique()[i]].index
     c = i%ncols
@@ -1424,14 +1521,17 @@ for i in range(nrows*ncols):
     g = sns.lineplot(x=t, y=ymin_yearly.TMIN.values, ax=axs[r,c], marker='.', color='b', alpha=0.5, label='$T_{n}$')
     sns.lineplot(x=t, y=yavg_yearly.TAVG.values, ax=axs[r,c], marker='.', color='purple', alpha=0.5, label='$T_{g}$')
     sns.lineplot(x=t, y=ymax_yearly.TMAX.values, ax=axs[r,c], marker='.', color='r', alpha=0.5, label='$T_{x}$')
-    g.axes.set_ylim(-30,40)
+    if use_fahrenheit == True:
+        g.axes.set_ylim(0,90)
+    else:
+        g.axes.set_ylim(-20,40)    
     g.axes.set_xlim(pd.Timestamp('1880-01-01'),pd.Timestamp('2020-01-01'))
     if (r+1) == nrows:
         g.axes.set_xlabel('Year', fontsize=fontsize)
     else:
         g.axes.set_xticklabels([])  
     if c == 0:
-        g.axes.set_ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+        g.axes.set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     else:
         g.axes.set_yticklabels([])
     g.axes.set_title('STATION='+stationcode, fontsize=fontsize)
@@ -1489,7 +1589,7 @@ plt.close('all')
 
 # PLOT: Neighbouring stations in the Boston area: GloSAT (monthly) timeseries
 
-print('plotting neighbouring stations in the Boston area timeseries ... ')
+print('plotting GloSAT stations in the Boston area timeseries ... ')
 
 sequential_colors = sns.color_palette(color_palette, 17)
 sns.set_palette(sequential_colors)
@@ -1498,13 +1598,35 @@ figstr = 'glosat-tg(monthly)-timeseries.png'
 titlestr = 'GloSAT stations in the Boston area: $T_g$ (monthly) and early observations'
 
 fig, ax = plt.subplots(figsize=(15,10))
+
+if use_fahrenheit == True:
+    df_blue_hill = pd.DataFrame({'blue_hill':centigrade_to_fahrenheit( df_blue_hill['blue_hill'] )})
+    df_bedford = pd.DataFrame({'bedford':centigrade_to_fahrenheit( df_bedford['bedford'] )})
+    df_lawrence = pd.DataFrame({'lawrence':centigrade_to_fahrenheit( df_lawrence['lawrence'] )})
+    df_amherst = pd.DataFrame({'amherst':centigrade_to_fahrenheit( df_amherst['amherst'] )})
+    df_providence_wso = pd.DataFrame({'providence_wso':centigrade_to_fahrenheit( df_providence_wso['providence_wso'] )})
+    df_new_haven = pd.DataFrame({'new_haven':centigrade_to_fahrenheit( df_new_haven['new_haven'] )})
+    df_new_bedford = pd.DataFrame({'new_bedford':centigrade_to_fahrenheit( df_new_bedford['new_bedford'] )})
+    df_taunton = pd.DataFrame({'taunton':centigrade_to_fahrenheit( df_taunton['taunton'] )})
+    df_reading = pd.DataFrame({'reading':centigrade_to_fahrenheit( df_reading['reading'] )})
+    df_provincetown = pd.DataFrame({'provincetown':centigrade_to_fahrenheit( df_provincetown['provincetown'] )})
+    df_walpole_2 = pd.DataFrame({'walpole_2':centigrade_to_fahrenheit( df_walpole_2['walpole_2'] )})
+    df_west_medway = pd.DataFrame({'west_medway':centigrade_to_fahrenheit( df_west_medway['west_medway'] )})
+    df_kingston = pd.DataFrame({'kingston':centigrade_to_fahrenheit( df_kingston['kingston'] )})
+    df_plymouth_kingston = pd.DataFrame({'plymouth_kingston':centigrade_to_fahrenheit( df_plymouth_kingston['plymouth_kingston'] )})
+    
+    df_ghcnmv4_qcf = pd.DataFrame({'df_ghcnmv4_qcf':centigrade_to_fahrenheit( df_ghcnmv4_qcf['df_ghcnmv4_qcf'] )})
+    df_ghcnmv4_qcu = pd.DataFrame({'df_ghcnmv4_qcu':centigrade_to_fahrenheit( df_ghcnmv4_qcu['df_ghcnmv4_qcu'] )})
+
+    df_20CRv3_new_haven = pd.DataFrame({'T(2m)':centigrade_to_fahrenheit( df_20CRv3_new_haven['T(2m)'] )})
+
+
 sns.lineplot(x=df_blue_hill.index, y=df_blue_hill['blue_hill'], marker='.', alpha=0.5, legend=False)
 sns.lineplot(x=df_bedford.index, y=df_bedford['bedford'], marker='.', alpha=0.5, legend=False)
 sns.lineplot(x=df_lawrence.index, y=df_lawrence['lawrence'], marker='.', alpha=0.5, legend=False)
 sns.lineplot(x=df_amherst.index, y=df_amherst['amherst'], marker='.', alpha=0.5, legend=False)
 sns.lineplot(x=df_providence_wso.index, y=df_providence_wso['providence_wso'], marker='.', alpha=0.5, legend=False)
 sns.lineplot(x=df_new_haven.index, y=df_new_haven['new_haven'], marker='.', alpha=0.5, legend=False)
-
 sns.lineplot(x=df_new_bedford.index, y=df_new_bedford['new_bedford'], marker='.', alpha=0.5, legend=False)
 sns.lineplot(x=df_taunton.index, y=df_taunton['taunton'], marker='.', alpha=0.5, legend=False)
 sns.lineplot(x=df_reading.index, y=df_reading['reading'], marker='.', alpha=0.5, legend=False)
@@ -1514,17 +1636,12 @@ sns.lineplot(x=df_west_medway.index, y=df_west_medway['west_medway'], marker='.'
 sns.lineplot(x=df_kingston.index, y=df_kingston['kingston'], marker='.', alpha=0.5, legend=False)
 sns.lineplot(x=df_plymouth_kingston.index, y=df_plymouth_kingston['plymouth_kingston'], marker='.', alpha=0.5, legend=False)
 
-sns.lineplot(x=df_holyoke.dropna().rolling(31,center=True).mean().index, y=pd.Series((df_holyoke['T(08:00)']+df_holyoke['T(13:00)']+df_holyoke['T(22:00)']+df_holyoke['T(sunset)'])/4.).dropna().rolling(31,center=True).mean(), marker='.', alpha=0.5, legend=True, label=r'$T_{919}$ 1m MA: Salem (Holyoke)')
-sns.lineplot(x=df_wigglesworth.dropna().rolling(31,center=True).mean().index, y=pd.Series((df_wigglesworth['T(08:00)']+df_wigglesworth['T(13:00)']+df_wigglesworth['T(21:00)'])/3.).dropna().rolling(31,center=True).mean(), marker='.', alpha=0.5, legend=True, label=r'$T_{919}$ 1m MA: Salem (Wigglesworth)')
-sns.lineplot(x=df_farrar.index, y=df_farrar['Tmean'], marker='.', alpha=0.5, legend=True, label=r'$T_{g}$ (monthly): Cambridge (Farrar)')
-
 sns.lineplot(x=df_blue_hill.index, y=(pd.Series(df_blue_hill['blue_hill']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Blue Hill')
 sns.lineplot(x=df_bedford.index, y=(pd.Series(df_bedford['bedford']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Bedford')
 sns.lineplot(x=df_lawrence.index, y=(pd.Series(df_lawrence['lawrence']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True,  label=r'$T_{g}$ 2yr MA: Lawrence')
 sns.lineplot(x=df_amherst.index, y=(pd.Series(df_amherst['amherst']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True,  label=r'$T_{g}$ 2yr MA: Amherst')
 sns.lineplot(x=df_providence_wso.index, y=(pd.Series(df_providence_wso['providence_wso']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Povidence WSO')
 sns.lineplot(x=df_new_haven.index, y=(pd.Series(df_new_haven['new_haven']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: New Haven')
-
 sns.lineplot(x=df_new_bedford.index, y=(pd.Series(df_new_bedford['new_bedford']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: New Bedford')
 sns.lineplot(x=df_taunton.index, y=(pd.Series(df_taunton['taunton']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Taunton')
 sns.lineplot(x=df_reading.index, y=(pd.Series(df_reading['reading']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Reading')
@@ -1533,13 +1650,12 @@ sns.lineplot(x=df_walpole_2.index, y=(pd.Series(df_walpole_2['walpole_2']).rolli
 sns.lineplot(x=df_west_medway.index, y=(pd.Series(df_west_medway['west_medway']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: West Medway')
 sns.lineplot(x=df_kingston.index, y=(pd.Series(df_kingston['kingston']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Kingston')
 sns.lineplot(x=df_plymouth_kingston.index, y=(pd.Series(df_plymouth_kingston['plymouth_kingston']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$ 2yr MA: Plymouth-Kingston')
-
-#sns.lineplot(x=df_holyoke.dropna().rolling((31*24),center=True).mean().index, y=(pd.Series((df_holyoke['T(08:00)']+df_holyoke['T(13:00)']+df_holyoke['T(22:00)']+df_holyoke['T(sunset)'])/4.).dropna().rolling((31*24),center=True).mean()), ls='-', lw=3, legend=True, label=r'$T_{919}$ 2yr MA: Salem (Holyoke)')
-#sns.lineplot(x=df_wigglesworth.dropna().rolling((31*24),center=True).mean().index, y=(pd.Series((df_wigglesworth['T(08:00)']+df_wigglesworth['T(13:00)']+df_wigglesworth['T(21:00)'])/3.).dropna().rolling((31*24),center=True).mean()).ewm(span=(31*24), adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{919}$ 2yr MA: Salem (Wigglesworth)')
-#sns.lineplot(x=df_farrar.index, y=(pd.Series(df_farrar['Tmean']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, legend=True, label=r'$T_{g}$: Cambridge (Farrar)')
-ax.set_ylim(-20,30)
+if use_fahrenheit == True:
+    ax.set_ylim(0,90)
+else:
+    ax.set_ylim(-20,40)    
 plt.xlabel('', fontsize=fontsize)
-plt.ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+plt.ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
 plt.title(titlestr, fontsize=fontsize)
 plt.tick_params(labelsize=fontsize)    
 plt.legend(loc='lower right', ncol=3, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -1568,7 +1684,6 @@ sns.kdeplot(df_lawrence['lawrence'], shade=True, alpha=0.2, legend=True, **kwarg
 sns.kdeplot(df_amherst['amherst'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Amherst')
 sns.kdeplot(df_providence_wso['providence_wso'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Povidence WSO')
 sns.kdeplot(df_new_haven['new_haven'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: New Haven')
-
 sns.kdeplot(df_new_bedford['new_bedford'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: New Bedford')
 sns.kdeplot(df_taunton['taunton'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Taunton')
 sns.kdeplot(df_reading['reading'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Reading')
@@ -1577,13 +1692,13 @@ sns.kdeplot(df_walpole_2['walpole_2'], shade=True, alpha=0.2, legend=True, **kwa
 sns.kdeplot(df_west_medway['west_medway'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: West Medway')
 sns.kdeplot(df_kingston['kingston'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Kingston')
 sns.kdeplot(df_plymouth_kingston['plymouth_kingston'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Plymouth-Kingston')
-
-sns.kdeplot(df_holyoke_919, shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{919}$ Salem (Holyoke)')
-sns.kdeplot(df_wigglesworth_919, shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{919}$ Salem (Wigglesworth)')
-sns.kdeplot(df_farrar['Tmean'], shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$: Cambridge (Farrar)')
-ax.set_xlim(-20,30)
-ax.set_ylim(0,0.05)
-plt.xlabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+if use_fahrenheit == True:
+    ax.set_xlim(-20,110)
+    ax.set_ylim(0,0.03)
+else:
+    ax.set_xlim(-20,40)
+    ax.set_ylim(0,0.05)    
+plt.xlabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
 plt.ylabel('KDE', fontsize=fontsize)
 plt.title(titlestr, fontsize=fontsize)
 plt.tick_params(labelsize=fontsize)    
@@ -1661,8 +1776,13 @@ sns.lineplot(x=df_ghcnmv4_qcu.index[mask_post_1959], y=mask_post_1959.sum()*[df_
 
 plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k', zorder=20)
 plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k', zorder=20)
+
+if use_fahrenheit == True:
+    ax.set_ylim(40,60)
+else:
+    ax.set_ylim(-20,40)
 plt.xlabel('Year', fontsize=fontsize)
-plt.ylabel(r'2m Temperature, $^{\circ}$C', fontsize=fontsize)
+plt.ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
 plt.title(titlestr, fontsize=fontsize)
 plt.tick_params(labelsize=fontsize)    
 plt.legend(loc='upper left', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
