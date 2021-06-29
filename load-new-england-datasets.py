@@ -116,9 +116,9 @@ plot_historical = False
 plot_differences = False
 plot_differences_heatmap = False
 plot_kde = False
-plot_ghcn = True
-plot_inventory = True
-plot_glosat_neighbours = True
+plot_ghcn = False
+plot_inventory = False
+plot_glosat_neighbours = False
 plot_bho_all_sources = False
 plot_glosat_adjusted_vs_neighbours = False
 
@@ -1012,12 +1012,12 @@ else:
 if load_neighbouring_stations == True:
           
     df_neighbouring_stations = pd.read_csv('OUT/df_neighbouring_stations.csv', index_col=0)
-    df_neighbouring_stations.index = pd.to_datetime(df_neighbouring_stations.index)
+    df_neighbouring_stations.index = pd.to_datetime(df_neighbouring_stations.index)   
 
 else:
     
     #------------------------------------------------------------------------------
-    # LOAD: neighbouring station datasets
+    # LOAD: GHCND neighbouring station datasets (daily TMIN, TMAX ,TAVG)
     #------------------------------------------------------------------------------
     
     # NOAA NCEI LCD station group 1 
@@ -1115,7 +1115,23 @@ else:
     df_neighbouring_stations.index.name = 'datetime'
     df_neighbouring_stations.to_csv('df_neighbouring_stations.csv')
 
+df_neighbouring_stations = df_neighbouring_stations.sort_index()
 Nstations = df_neighbouring_stations.groupby('STATION').count().shape[0]
+stationcodes = df_neighbouring_stations['STATION'].unique()
+
+# SPLIT: into individual station dataframes: df_STATIONCODE and resample at monthly timescale
+
+# ['USC00199928', 'USW00094701', 'USC00190736', 'USC00194105',
+#  'USC00190120', 'USC00376712', 'USC00190538', 'USC00195306',
+#  'USW00014739', 'USW00014765', 'USW00014758', 'USC00065910'],
+            
+for i in range(len(stationcodes)):    
+        
+    Tg = (df_neighbouring_stations[df_neighbouring_stations['STATION']==stationcodes[i]]['TAVG']).sort_index()
+    Tg = pd.DataFrame({'Tg':Tg.values}, index=Tg.index)
+    Tg_xr = Tg.to_xarray()    
+    Tgm = Tg_xr['Tg'].resample(datetime='MS').mean().to_dataset() 
+    globals()['df_' + stationcodes[i]] = pd.DataFrame({'Tgm':Tgm.Tg.values}, index=Tgm.datetime.values)
 
 #==============================================================================
 
@@ -1154,6 +1170,19 @@ if use_fahrenheit == True:
         'T(2m) spread':centigrade_to_fahrenheit( df_20CRv3_bho['T(2m) spread'] ) - 32.0,
         'T(1000hPa) spread':centigrade_to_fahrenheit( df_20CRv3_bho['T(1000hPa) spread'] ) - 32.0
         })
+
+    df_USC00199928 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USC00199928['Tgm'] )}) # WORCESTER, MA
+    df_USW00094701 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USW00094701['Tgm'] )}) # BOSTON CITY WSO, MA
+    df_USC00190736 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USC00190736['Tgm'] )}) # BLUE HILL, MA
+    df_USC00194105 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USC00194105['Tgm'] )}) # LAWRENCE, MA
+    df_USC00190120 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USC00190120['Tgm'] )}) # AMHERST, MA
+    df_USC00376712 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USC00376712['Tgm'] )}) # PROVIDENCE 2, RI
+    df_USC00190538 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USC00190538['Tgm'] )}) # BEDFORD, MA
+    df_USC00195306 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USC00195306['Tgm'] )}) # NEW SALEM, MA
+    df_USW00014739 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USW00014739['Tgm'] )}) # BOSTON, MA
+    df_USW00014765 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USW00014765['Tgm'] )}) # PROVIDENCE, RI
+    df_USW00014758 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USW00014758['Tgm'] )}) # NEW HAVEN TWEED AIRPORT, CT
+    df_USC00065910 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USC00065910['Tgm'] )}) # NORWICH, CT
 
 else:
     
@@ -1198,7 +1227,19 @@ df_providence_wso_1811_1959 = df_providence_wso[ (df_providence_wso.index>=pd.to
 df_20CRv3_bho_1811_1959 = df_20CRv3_bho[ (df_20CRv3_bho.index>=pd.to_datetime('1811-01-01')) & (df_20CRv3_bho.index<=pd.to_datetime('1959-05-01')) ]
 df_20CRv3_new_haven_1811_1959 = df_20CRv3_new_haven[ (df_20CRv3_new_haven.index>=pd.to_datetime('1811-01-01')) & (df_20CRv3_new_haven.index<=pd.to_datetime('1959-05-01')) ]
 
-
+df_USC00199928_1959_2020 = df_USC00199928[ (df_USC00199928.index>=pd.to_datetime('1959-06-01')) & (df_USC00199928.index<=pd.to_datetime('2020-12-01')) ] # WORCESTER, MA
+df_USW00094701_1959_2020 = df_USW00094701[ (df_USW00094701.index>=pd.to_datetime('1959-06-01')) & (df_USW00094701.index<=pd.to_datetime('2020-12-01')) ] # BOSTON CITY WSO, MA
+df_USC00190736_1959_2020 = df_USC00190736[ (df_USC00190736.index>=pd.to_datetime('1959-06-01')) & (df_USC00190736.index<=pd.to_datetime('2020-12-01')) ] # BLUE HILL, MA
+df_USC00194105_1959_2020 = df_USC00194105[ (df_USC00194105.index>=pd.to_datetime('1959-06-01')) & (df_USC00194105.index<=pd.to_datetime('2020-12-01')) ] # LAWRENCE, MA
+df_USC00190120_1959_2020 = df_USC00190120[ (df_USC00190120.index>=pd.to_datetime('1959-06-01')) & (df_USC00190120.index<=pd.to_datetime('2020-12-01')) ] # AMHERST, MA
+df_USC00376712_1959_2020 = df_USC00376712[ (df_USC00376712.index>=pd.to_datetime('1959-06-01')) & (df_USC00376712.index<=pd.to_datetime('2020-12-01')) ] # PROVIDENCE 2, RI
+df_USC00190538_1959_2020 = df_USC00190538[ (df_USC00190538.index>=pd.to_datetime('1959-06-01')) & (df_USC00190538.index<=pd.to_datetime('2020-12-01')) ] # BEDFORD, MA
+df_USC00195306_1959_2020 = df_USC00195306[ (df_USC00195306.index>=pd.to_datetime('1959-06-01')) & (df_USC00195306.index<=pd.to_datetime('2020-12-01')) ] # NEW SALEM, MA
+df_USW00014739_1959_2020 = df_USW00014739[ (df_USW00014739.index>=pd.to_datetime('1959-06-01')) & (df_USW00014739.index<=pd.to_datetime('2020-12-01')) ] # BOSTON, MA
+df_USW00014765_1959_2020 = df_USW00014765[ (df_USW00014765.index>=pd.to_datetime('1959-06-01')) & (df_USW00014765.index<=pd.to_datetime('2020-12-01')) ] # PROVIDENCE, RI
+df_USW00014758_1959_2020 = df_USW00014758[ (df_USW00014758.index>=pd.to_datetime('1959-06-01')) & (df_USW00014758.index<=pd.to_datetime('2020-12-01')) ] # NEW HAVEN TWEED AIRPORT, CT
+df_USC00065910_1959_2020 = df_USC00065910[ (df_USC00065910.index>=pd.to_datetime('1959-06-01')) & (df_USC00065910.index<=pd.to_datetime('2020-12-01')) ] # NORWICH, CT
+    
 # CALCULATE: monthly adjustments (1 per month) and differences [T2828 (monthly) - Tg (monthly)]
 
 df_bho_differences_T2828_Tg = df_bho_2828_1961_2020['T2828'] - df_bho_tg_1961_2020['Tg']
@@ -1279,10 +1320,8 @@ df_blue_hill_1811_2020_tobs_adjusted['blue_hill'] = df_blue_hill_1811_2020_tobs_
 df_blue_hill_1885_2020_tobs_adjusted = df_blue_hill_1811_2020_tobs_adjusted[ (df_blue_hill_1811_2020_tobs_adjusted.index>=pd.to_datetime('1885-01-01')) & (df_blue_hill.index<=pd.to_datetime('2020-12-01')) ]
 df_blue_hill_1885_2020_tobs_adjusted.index.name = 'datetime'
 df_blue_hill_1811_1959_tobs_adjusted = df_blue_hill_1811_1959.copy()
-
 df_ghcnmv4_qcu_1811_1959 = df_ghcnmv4_qcu[ (df_ghcnmv4_qcu.index>=pd.to_datetime('1811-01-01')) & (df_ghcnmv4_qcu.index<=pd.to_datetime('1959-05-01'))] 
 df_ghcnmv4_qcf_1811_1959 = df_ghcnmv4_qcf[ (df_ghcnmv4_qcf.index>=pd.to_datetime('1811-01-01')) & (df_ghcnmv4_qcf.index<=pd.to_datetime('1959-05-01'))] 
-
 
 #------------------------------------------------------------------------------
 # PLOTS
@@ -2657,17 +2696,17 @@ print('** END')
 
 if plot_temp == True:
 
-    # PLOT: BHO: GloSAT Tg (monthly) adjusted vs USHCNv2.5
+    # PLOT: BHO: GloSAT Tg (monthly) adjusted vs GHCND Tgm (from daily)
     
-    print('plotting BHO: GloSAT Tg (adjusted) vs USHCNv2.5 ...')
+    print('plotting BHO: GloSAT Tg (adjusted) vs GHCND Tgm (from daily) USW00014739 (Boston) ...')
     
-    figstr = 'bho-glosat-tg-adjusted-vs-ushcnv2.5.png'
-    titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs USHCNv2.5'
+    figstr = 'bho-glosat-tg-adjusted-vs-ghcnd-tgm-boston.png'
+    titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GHCND $T_{g}$ (from daily) USW00014739 (Boston)'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_ghcnmv4_qcu_1811_1959.index, df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu'], marker='.', color='b', alpha=1.0, label='$T_{g}$ USHCNv2.5')
-#   axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu'], color='teal')
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO')
+    axs[0].plot(df_USW00014739_1959_2020.index, df_USW00014739_1959_2020['Tgm'], marker='.', color='b', alpha=1.0, label='$T_{g}$ (from daily) GHCND Boston')
+    axs[1].plot(df_blue_hill_1959_2020.index, df_blue_hill_1959_2020['blue_hill'] - df_USW00014739_1959_2020['Tgm'], color='teal')
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
@@ -2676,13 +2715,113 @@ if plot_temp == True:
     axs[1].sharex(axs[0])
     axs[1].tick_params(labelsize=fontsize)    
     axs[1].set_xlabel('Year', fontsize=fontsize)
-    axs[1].set_ylabel(r'BHO $T_{g}$ - USHCNv2.5 $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    axs[1].set_ylabel(r'BHO $T_{g}$ - GHCND $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     if use_fahrenheit == True:
         axs[0].set_ylim(0,80)
-        axs[1].set_ylim(-3,3)
+        axs[1].set_ylim(-9,3)
     else:
         axs[0].set_ylim(-20,30)
         axs[1].set_ylim(-1.5,0.5)
     fig.tight_layout()
     plt.savefig(figstr, dpi=300)
     plt.close('all')
+    
+    print('plotting BHO: GloSAT Tg (adjusted) vs GHCND Tgm (from daily) USW00014765 (Providence, RI) ...')
+    
+    figstr = 'bho-glosat-tg-adjusted-vs-ghcnd-tgm-providence.png'
+    titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GHCND $T_{g}$ (from daily) USW00014739 (Providence)'
+
+    fig, axs = plt.subplots(2,1, figsize=(15,10))
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO')
+    axs[0].plot(df_USW00014765_1959_2020.index, df_USW00014765_1959_2020['Tgm'], marker='.', color='b', alpha=1.0, label='$T_{g}$ (from daily) GHCND Providence')
+    axs[1].plot(df_blue_hill_1959_2020.index, df_blue_hill_1959_2020['blue_hill'] - df_USW00014765_1959_2020['Tgm'], color='teal')
+    axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    axs[0].set_xlabel('', fontsize=fontsize)
+    axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    axs[0].set_title(titlestr, fontsize=fontsize)
+    axs[0].tick_params(labelsize=fontsize)    
+    axs[1].sharex(axs[0])
+    axs[1].tick_params(labelsize=fontsize)    
+    axs[1].set_xlabel('Year', fontsize=fontsize)
+    axs[1].set_ylabel(r'BHO $T_{g}$ - GHCND $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    if use_fahrenheit == True:
+        axs[0].set_ylim(0,80)
+        axs[1].set_ylim(-9,3)
+    else:
+        axs[0].set_ylim(-20,30)
+        axs[1].set_ylim(-1.5,0.5)
+    fig.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')
+    
+    print('plotting BHO: GloSAT Tg (adjusted) vs GHCND Tgm (from daily) USW00014758 (New Haven Tweed Airport) ...')
+    
+    figstr = 'bho-glosat-tg-adjusted-vs-ghcnd-tgm-new-haven.png'
+    titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GHCND $T_{g}$ (from daily) USW00014758 (New Haven Tweed Airport)'
+
+    fig, axs = plt.subplots(2,1, figsize=(15,10))
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO')
+    axs[0].plot(df_USW00014758_1959_2020.index, df_USW00014758_1959_2020['Tgm'], marker='.', color='b', alpha=1.0, label='$T_{g}$ (from daily) GHCND New Haven Tweed Airport')
+    axs[1].plot(df_blue_hill_1959_2020.index, df_blue_hill_1959_2020['blue_hill'] - df_USW00014758_1959_2020['Tgm'], color='teal')
+    axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    axs[0].set_xlabel('', fontsize=fontsize)
+    axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    axs[0].set_title(titlestr, fontsize=fontsize)
+    axs[0].tick_params(labelsize=fontsize)    
+    axs[1].sharex(axs[0])
+    axs[1].tick_params(labelsize=fontsize)    
+    axs[1].set_xlabel('Year', fontsize=fontsize)
+    axs[1].set_ylabel(r'BHO $T_{g}$ - GHCND $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    if use_fahrenheit == True:
+        axs[0].set_ylim(0,80)
+        axs[1].set_ylim(-9,3)
+    else:
+        axs[0].set_ylim(-20,30)
+        axs[1].set_ylim(-1.5,0.5)
+    fig.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')    
+    
+    print('plotting BHO: GloSAT Tg (adjusted) vs GHCND Tgm (from daily) USC00065910 (Norwich) ...')
+    
+    figstr = 'bho-glosat-tg-adjusted-vs-ghcnd-tgm-norwich.png'
+    titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GHCND $T_{g}$ (from daily) USC00065910 (Norwich)'
+
+    fig, axs = plt.subplots(2,1, figsize=(15,10))
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO')
+    axs[0].plot(df_USC00065910_1959_2020.index, df_USC00065910_1959_2020['Tgm'], marker='.', color='b', alpha=1.0, label='$T_{g}$ (from daily) GHCND Norwich')
+    axs[1].plot(df_blue_hill_1959_2020.index, df_blue_hill_1959_2020['blue_hill'] - df_USC00065910_1959_2020['Tgm'], color='teal')
+    axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    axs[0].set_xlabel('', fontsize=fontsize)
+    axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    axs[0].set_title(titlestr, fontsize=fontsize)
+    axs[0].tick_params(labelsize=fontsize)    
+    axs[1].sharex(axs[0])
+    axs[1].tick_params(labelsize=fontsize)    
+    axs[1].set_xlabel('Year', fontsize=fontsize)
+    axs[1].set_ylabel(r'BHO $T_{g}$ - GHCND $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    if use_fahrenheit == True:
+        axs[0].set_ylim(0,80)
+        axs[1].set_ylim(-9,3)
+    else:
+        axs[0].set_ylim(-20,30)
+        axs[1].set_ylim(-1.5,0.5)
+    fig.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')    
+    
+df_USC00199928_1959_2020 = df_USC00199928[ (df_USC00199928.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # WORCESTER, MA
+df_USW00094701_1959_2020 = df_USW00094701[ (df_USW00094701.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # BOSTON CITY WSO, MA
+df_USC00190736_1959_2020 = df_USC00190736[ (df_USC00190736.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # BLUE HILL, MA
+df_USC00194105_1959_2020 = df_USC00194105[ (df_USC00194105.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # LAWRENCE, MA
+df_USC00190120_1959_2020 = df_USC00190120[ (df_USC00190120.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # AMHERST, MA
+df_USC00376712_1959_2020 = df_USC00376712[ (df_USC00376712.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # PROVIDENCE 2, RI
+df_USC00190538_1959_2020 = df_USC00190538[ (df_USC00190538.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # BEDFORD, MA
+df_USC00195306_1959_2020 = df_USC00195306[ (df_USC00195306.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # NEW SALEM, MA
+df_USW00014739_1959_2020 = df_USW00014739[ (df_USW00014739.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # BOSTON, MA
+df_USW00014765_1959_2020 = df_USW00014765[ (df_USW00014765.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # PROVIDENCE, RI
+df_USW00014758_1959_2020 = df_USW00014758[ (df_USW00014758.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # NEW HAVEN TWEED AIRPORT, CT
+df_USC00065910_1959_2020 = df_USC00065910[ (df_USC00065910.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # NORWICH, CT
+
+    
+    
