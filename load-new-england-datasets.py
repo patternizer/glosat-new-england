@@ -4,8 +4,8 @@
 #------------------------------------------------------------------------------
 # PROGRAM: load-new-england-datasets.py
 #------------------------------------------------------------------------------
-# Version 0.8
-# 27 June, 2021
+# Version 0.9
+# 29 June, 2021
 # Michael Taylor
 # https://patternizer.github.io
 # patternizer AT gmail DOT com
@@ -113,7 +113,7 @@ save_monthly_adjustments = False
 save_glosat_adjustments = False
 
 plot_historical = False
-plot_differences = False
+plot_differences = True
 plot_differences_heatmap = False
 plot_kde = False
 plot_ghcn = False
@@ -127,7 +127,7 @@ if use_fahrenheit:
 else:
     temperature_unit = 'C'
 
-plot_temp = False
+plot_temp = True
 
 #------------------------------------------------------------------------------
 # METHODS: 
@@ -1432,6 +1432,7 @@ if plot_differences == True:
     sns.lineplot(x=df_bho_tg.index, y='Tgm', data=df_bho_monthly, ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ (from daily) BHO')
     sns.lineplot(x=df_bho_tg.index, y='Tg', data=df_bho_monthly, ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ BHO')
     sns.lineplot(x=df_bho_tg.index, y=df_bho_monthly['Tgm']-df_bho_monthly['Tg'], data=df_bho_monthly, ax=axs[1], color='teal')
+    
     mask_pre_1891 = df_bho_tg.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_bho_tg.index >= pd.Timestamp('1891-01-01')) & (df_bho_tg.index < pd.Timestamp('1959-06-01'))
     mask_post_1959 = df_bho_tg.index >= pd.Timestamp('1959-06-01')
@@ -1441,6 +1442,9 @@ if plot_differences == True:
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
     plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1891-01-01'), y=-0.1, s='1891-01')
+    plt.text(x=pd.Timestamp('1959-06-01'), y=-0.1, s='1959-06')
+    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     axs[0].set_title(titlestr, fontsize=fontsize)
@@ -1470,6 +1474,7 @@ if plot_differences == True:
     sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{2828}$ BHO')
     sns.lineplot(x=df_bho_2828.index, y=df_bho_tg['Tg'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ BHO')
     sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'] - df_bho_tg['Tg'], ax=axs[1], color='teal')
+
     mask_pre_1891 = df_bho_2828.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_bho_2828.index >= pd.Timestamp('1891-01-01')) & (df_bho_2828.index <= pd.Timestamp('1959-05-01'))
     mask_post_1959 = df_bho_2828.index >= pd.Timestamp('1959-06-01')
@@ -1478,6 +1483,9 @@ if plot_differences == True:
     sns.lineplot(x=df_bho_2828.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
     plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
     plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1891-01-01'), y=-3, s='1891-01')
+    plt.text(x=pd.Timestamp('1959-06-01'), y=-3, s='1959-06')
+
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
@@ -1508,6 +1516,18 @@ if plot_differences == True:
     sns.lineplot(x=df_bho_2828_1885_2020.index, y=df_bho_2828_1885_2020['T2828'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{2828}$ BHO')
     sns.lineplot(x=df_bho_2828_1885_2020.index, y=df_blue_hill_1885_2020['blue_hill'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT')
     sns.lineplot(x=df_bho_2828_1885_2020.index, y=df_bho_2828_1885_2020['T2828'] - df_blue_hill_1885_2020['blue_hill'], ax=axs[1], color='teal')
+
+    mask_pre_1891 = df_bho_2828_1885_2020.index < pd.Timestamp('1891-01-01')
+    mask_1891_1959 = (df_bho_2828_1885_2020.index >= pd.Timestamp('1891-01-01')) & (df_bho_2828_1885_2020.index <= pd.Timestamp('1959-05-01'))
+    mask_post_1959 = df_bho_2828_1885_2020.index >= pd.Timestamp('1959-06-01')
+    sns.lineplot(x=df_bho_2828_1885_2020.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020['blue_hill']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
+    sns.lineplot(x=df_bho_2828_1885_2020.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020['blue_hill']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
+    sns.lineplot(x=df_bho_2828_1885_2020.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020['blue_hill']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
+    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1891-01-01'), y=-3, s='1891-01')
+    plt.text(x=pd.Timestamp('1959-06-01'), y=-3, s='1959-06')
+    
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
@@ -1538,6 +1558,18 @@ if plot_differences == True:
     sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index, y=df_bho_2828_1885_2020['T2828'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{2828}$ BHO')
     sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index, y=df_blue_hill_1885_2020_tobs_adjusted['blue_hill'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT (adjusted)')
     sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index, y=df_bho_2828_1885_2020['T2828'] - df_blue_hill_1885_2020_tobs_adjusted['blue_hill'], ax=axs[1], color='teal')
+
+    mask_pre_1891 = df_blue_hill_1885_2020_tobs_adjusted.index < pd.Timestamp('1891-01-01')
+    mask_1891_1959 = (df_blue_hill_1885_2020_tobs_adjusted.index >= pd.Timestamp('1891-01-01')) & (df_blue_hill_1885_2020_tobs_adjusted.index <= pd.Timestamp('1959-05-01'))
+    mask_post_1959 = df_blue_hill_1885_2020_tobs_adjusted.index >= pd.Timestamp('1959-06-01')
+    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
+    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
+    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
+    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1891-01-01'), y=-3, s='1891-01')
+    plt.text(x=pd.Timestamp('1959-06-01'), y=-3, s='1959-06')
+            
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
@@ -1568,6 +1600,18 @@ if plot_differences == True:
     sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_bho_tg_1885_2020['Tg'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ BHO')
     sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_blue_hill_1885_2020['blue_hill'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT')
     sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_bho_tg_1885_2020['Tg'] - df_blue_hill_1885_2020['blue_hill'], ax=axs[1], color='teal')
+
+    mask_pre_1891 = df_bho_tg_1885_2020.index < pd.Timestamp('1891-01-01')
+    mask_1891_1959 = (df_bho_tg_1885_2020.index >= pd.Timestamp('1891-01-01')) & (df_bho_tg_1885_2020.index <= pd.Timestamp('1959-05-01'))
+    mask_post_1959 = df_bho_tg_1885_2020.index >= pd.Timestamp('1959-06-01')
+    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020['blue_hill']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
+    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020['blue_hill']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
+    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020['blue_hill']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
+    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1891-01-01'), y=-3, s='1891-01')
+    plt.text(x=pd.Timestamp('1959-06-01'), y=-3, s='1959-06')
+    
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
@@ -1592,12 +1636,24 @@ if plot_differences == True:
     print('plotting BHO: monthly Tg vs GloSAT Tg (adjusted) ...')
     
     figstr = 'bho-tg-vs-glosat-tg-adjusted.png'
-    titlestr = 'Blue Hill Observatory: monthly $T_{g}$ vs GloSAT $T_g$ (adjusted)'
+    titlestr = 'Blue Hill Observatory: monthly BHO $T_{g}$ vs GloSAT $T_g$ (adjusted)'
     
     fig, axs = plt.subplots(2,1, figsize=(15,10))
     sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_bho_tg_1885_2020['Tg'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ BHO')
     sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_blue_hill_1885_2020_tobs_adjusted['blue_hill'].values, ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT (adjusted)')
     sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_bho_tg_1885_2020['Tg'] - df_blue_hill_1885_2020_tobs_adjusted['blue_hill'].values, ax=axs[1], color='teal')
+
+    mask_pre_1891 = df_bho_tg_1885_2020.index < pd.Timestamp('1891-01-01')
+    mask_1891_1959 = (df_bho_tg_1885_2020.index >= pd.Timestamp('1891-01-01')) & (df_bho_tg_1885_2020.index <= pd.Timestamp('1959-05-01'))
+    mask_post_1959 = df_bho_tg_1885_2020.index >= pd.Timestamp('1959-06-01')
+    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
+    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
+    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
+    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1891-01-01'), y=-3, s='1891-01')
+    plt.text(x=pd.Timestamp('1959-06-01'), y=-3, s='1959-06')
+
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
@@ -1616,96 +1672,6 @@ if plot_differences == True:
     fig.tight_layout()
     plt.savefig(figstr, dpi=300)
     plt.close('all')
-
-    # PLOT: BHO: GloSAT Tg (monthly) adjusted vs GloSAT New Haven
-    
-    print('plotting BHO: GloSAT Tg (adjusted) vs GloSAT New Haven ...')
-    
-    figstr = 'bho-glosat-tg-adjusted-vs-glosat-new-haven.png'
-    titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GloSAT New Haven'
-    
-    fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    sns.lineplot(x=df_new_haven_1811_1959.index, y=df_new_haven_1811_1959['new_haven'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT New Haven')
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_new_haven_1811_1959['new_haven'], ax=axs[1], color='teal')    
-    axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    axs[0].set_xlabel('', fontsize=fontsize)
-    axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
-    axs[0].set_title(titlestr, fontsize=fontsize)
-    axs[0].tick_params(labelsize=fontsize)    
-    axs[1].sharex(axs[0])
-    axs[1].tick_params(labelsize=fontsize)    
-    axs[1].set_xlabel('Year', fontsize=fontsize)
-    axs[1].set_ylabel(r'BHO $T_{g}$ - New Haven $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
-    if use_fahrenheit == True:
-        axs[0].set_ylim(0,80)
-        axs[1].set_ylim(-13,6)
-    else:
-        axs[0].set_ylim(-20,30)
-        axs[1].set_ylim(-1.5,0.5)
-    fig.tight_layout()
-    plt.savefig(figstr, dpi=300)
-    plt.close('all')
-
-    # PLOT: BHO: GloSAT Tg (monthly) adjusted vs GloSAT Boston City WSO
-    
-    print('plotting BHO: GloSAT Tg (adjusted) vs GloSAT Boston City WSO ...')
-    
-    figstr = 'bho-glosat-tg-adjusted-vs-glosat-boston-city-wso.png'
-    titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GloSAT Boston City WSO'
-    
-    fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_boston_city_wso_1811_1959.index, df_boston_city_wso_1811_1959['boston_city_wso'], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT Boston City WSO')
-    axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_boston_city_wso_1811_1959['boston_city_wso'], color='teal')
-    axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    axs[0].set_xlabel('', fontsize=fontsize)
-    axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
-    axs[0].set_title(titlestr, fontsize=fontsize)
-    axs[0].tick_params(labelsize=fontsize)    
-    axs[1].sharex(axs[0])
-    axs[1].tick_params(labelsize=fontsize)    
-    axs[1].set_xlabel('Year', fontsize=fontsize)
-    axs[1].set_ylabel(r'BHO $T_{g}$ - Boston City WSO $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
-    if use_fahrenheit == True:
-        axs[0].set_ylim(0,80)
-        axs[1].set_ylim(-13,6)
-    else:
-        axs[0].set_ylim(-20,30)
-        axs[1].set_ylim(-1.5,0.5)
-    fig.tight_layout()
-    plt.savefig(figstr, dpi=300)
-    plt.close('all')
-
-    # PLOT: BHO: GloSAT Tg (monthly) adjusted vs GloSAT Providence WSO
-    
-    print('plotting BHO: GloSAT Tg (adjusted) vs GloSAT Providence WSO ...')
-    
-    figstr = 'bho-glosat-tg-adjusted-vs-glosat-providence-wso.png'
-    titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GloSAT Providence WSO'
-    
-    fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_providence_wso_1811_1959.index, df_providence_wso_1811_1959['providence_wso'], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT Providence WSO')
-    axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_providence_wso_1811_1959['providence_wso'], color='teal')
-    axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    axs[0].set_xlabel('', fontsize=fontsize)
-    axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
-    axs[0].set_title(titlestr, fontsize=fontsize)
-    axs[0].tick_params(labelsize=fontsize)    
-    axs[1].sharex(axs[0])
-    axs[1].tick_params(labelsize=fontsize)    
-    axs[1].set_xlabel('Year', fontsize=fontsize)
-    axs[1].set_ylabel(r'BHO $T_{g}$ - Providence WSO $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
-    if use_fahrenheit == True:
-        axs[0].set_ylim(0,80)
-        axs[1].set_ylim(-13,6)
-    else:
-        axs[0].set_ylim(-20,30)
-        axs[1].set_ylim(-1.5,0.5)
-    fig.tight_layout()
-    plt.savefig(figstr, dpi=300)
-    plt.close('all')
     
     # PLOT: BHO: GloSAT Tg (monthly) adjusted vs GCHNM-v4 QCU
     
@@ -1718,6 +1684,16 @@ if plot_differences == True:
     sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
     axs[0].plot(df_ghcnmv4_qcu_1811_1959.index, df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu'], marker='.', color='b', alpha=1.0, label='$T_{g}$ GHCNM-v4 QCU')
     axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu'], color='teal')
+
+    mask_pre_1893 = df_blue_hill_1811_1959_tobs_adjusted.index < pd.Timestamp('1893-01-01')
+    mask_1893_1959 = (df_blue_hill_1811_1959_tobs_adjusted.index >= pd.Timestamp('1893-01-01')) & (df_blue_hill_1811_1959_tobs_adjusted.index <= pd.Timestamp('1959-05-01'))
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index[mask_pre_1893], y=mask_pre_1893.sum()*[ np.nanmean((df_blue_hill_1811_1959_tobs_adjusted['blue_hill']-df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu']).values[mask_pre_1893]) ], ls='--', lw=1, color='k')            
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index[mask_1893_1959], y=mask_1893_1959.sum()*[ np.nanmean((df_blue_hill_1811_1959_tobs_adjusted['blue_hill']-df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu']).values[mask_1893_1959]) ], ls='--', lw=1, color='k')            
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1893-01-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1885-01-01'), y=-3, s='1885-01')
+    plt.text(x=pd.Timestamp('1893-01-01'), y=-3, s='1893-01')
+
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
@@ -1748,6 +1724,16 @@ if plot_differences == True:
     sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
     axs[0].plot(df_ghcnmv4_qcf_1811_1959.index, df_ghcnmv4_qcf_1811_1959['df_ghcnmv4_qcf'], marker='.', color='b', alpha=1.0, label='$T_{g}$ GHCNM-v4 QCF')
     axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_ghcnmv4_qcf_1811_1959['df_ghcnmv4_qcf'], color='teal')
+
+    mask_pre_1893 = df_blue_hill_1811_1959_tobs_adjusted.index < pd.Timestamp('1893-01-01')
+    mask_1893_1959 = (df_blue_hill_1811_1959_tobs_adjusted.index >= pd.Timestamp('1893-01-01')) & (df_blue_hill_1811_1959_tobs_adjusted.index <= pd.Timestamp('1959-05-01'))
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index[mask_pre_1893], y=mask_pre_1893.sum()*[ np.nanmean((df_blue_hill_1811_1959_tobs_adjusted['blue_hill']-df_ghcnmv4_qcf_1811_1959['df_ghcnmv4_qcf']).values[mask_pre_1893]) ], ls='--', lw=1, color='k')            
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index[mask_1893_1959], y=mask_1893_1959.sum()*[ np.nanmean((df_blue_hill_1811_1959_tobs_adjusted['blue_hill']-df_ghcnmv4_qcf_1811_1959['df_ghcnmv4_qcf']).values[mask_1893_1959]) ], ls='--', lw=1, color='k')            
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1893-01-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1885-01-01'), y=-3, s='1885-01')
+    plt.text(x=pd.Timestamp('1893-01-01'), y=-3, s='1893-01')
+
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
@@ -1767,6 +1753,117 @@ if plot_differences == True:
     plt.savefig(figstr, dpi=300)
     plt.close('all')
 
+    # PLOT: BHO: GloSAT Tg (monthly) adjusted vs GloSAT New Haven
+    
+    print('plotting BHO: GloSAT Tg (adjusted) vs GloSAT New Haven ...')
+    
+    figstr = 'bho-glosat-tg-adjusted-vs-glosat-new-haven.png'
+    titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GloSAT New Haven'
+    
+    fig, axs = plt.subplots(2,1, figsize=(15,10))
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    sns.lineplot(x=df_new_haven_1811_1959.index, y=df_new_haven_1811_1959['new_haven'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT New Haven')
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_new_haven_1811_1959['new_haven'], ax=axs[1], color='teal')    
+
+    mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_new_haven_1811_1959['new_haven'] )
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
+
+    axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    axs[0].set_xlabel('', fontsize=fontsize)
+    axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    axs[0].set_title(titlestr, fontsize=fontsize)
+    axs[0].tick_params(labelsize=fontsize)    
+    axs[1].sharex(axs[0])
+    axs[1].tick_params(labelsize=fontsize)    
+    axs[1].set_xlabel('Year', fontsize=fontsize)
+    axs[1].set_ylabel(r'BHO $T_{g}$ - New Haven $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    if use_fahrenheit == True:
+        axs[0].set_ylim(0,80)
+        axs[1].set_ylim(-15,15)
+    else:
+        axs[0].set_ylim(-20,30)
+        axs[1].set_ylim(-1.5,0.5)
+    fig.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')
+
+    # PLOT: BHO: GloSAT Tg (monthly) adjusted vs GloSAT Boston City WSO
+    
+    print('plotting BHO: GloSAT Tg (adjusted) vs GloSAT Boston City WSO ...')
+    
+    figstr = 'bho-glosat-tg-adjusted-vs-glosat-boston-city-wso.png'
+    titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GloSAT Boston City WSO'
+        
+    fig, axs = plt.subplots(2,1, figsize=(15,10))
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    axs[0].plot(df_boston_city_wso_1811_1959.index, df_boston_city_wso_1811_1959['boston_city_wso'], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT Boston City WSO')
+    axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_boston_city_wso_1811_1959['boston_city_wso'], color='teal')
+
+    mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_boston_city_wso_1811_1959['boston_city_wso'] )
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
+
+    axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    axs[0].set_xlabel('', fontsize=fontsize)
+    axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    axs[0].set_title(titlestr, fontsize=fontsize)
+    axs[0].tick_params(labelsize=fontsize)    
+    axs[1].sharex(axs[0])
+    axs[1].tick_params(labelsize=fontsize)    
+    axs[1].set_xlabel('Year', fontsize=fontsize)
+    axs[1].set_ylabel(r'BHO $T_{g}$ - Boston City WSO $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    if use_fahrenheit == True:
+        axs[0].set_ylim(0,80)
+        axs[1].set_ylim(-15,15)
+    else:
+        axs[0].set_ylim(-20,30)
+        axs[1].set_ylim(-1.5,0.5)
+    fig.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')
+
+    # PLOT: BHO: GloSAT Tg (monthly) adjusted vs GloSAT Providence WSO
+    
+    print('plotting BHO: GloSAT Tg (adjusted) vs GloSAT Providence WSO ...')
+    
+    figstr = 'bho-glosat-tg-adjusted-vs-glosat-providence-wso.png'
+    titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GloSAT Providence WSO'
+    
+    fig, axs = plt.subplots(2,1, figsize=(15,10))
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    axs[0].plot(df_providence_wso_1811_1959.index, df_providence_wso_1811_1959['providence_wso'], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT Providence WSO')
+    axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_providence_wso_1811_1959['providence_wso'], color='teal')
+
+    mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_providence_wso_1811_1959['providence_wso'] )
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
+
+    axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    axs[0].set_xlabel('', fontsize=fontsize)
+    axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    axs[0].set_title(titlestr, fontsize=fontsize)
+    axs[0].tick_params(labelsize=fontsize)    
+    axs[1].sharex(axs[0])
+    axs[1].tick_params(labelsize=fontsize)    
+    axs[1].set_xlabel('Year', fontsize=fontsize)
+    axs[1].set_ylabel(r'BHO $T_{g}$ - Providence WSO $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    if use_fahrenheit == True:
+        axs[0].set_ylim(0,80)
+        axs[1].set_ylim(-15,15)
+    else:
+        axs[0].set_ylim(-20,30)
+        axs[1].set_ylim(-1.5,0.5)
+    fig.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')
+    
     # PLOT: BHO: GloSAT Tg (monthly) adjusted vs 20CRv3 BHO T(2m)
     
     print('plotting BHO: GloSAT Tg (adjusted) vs 20CRv3 BHO T(2m) ...')
@@ -1782,6 +1879,8 @@ if plot_differences == True:
     mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_20CRv3_bho_1811_1959['T(2m)'] )
     sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
@@ -1794,7 +1893,7 @@ if plot_differences == True:
     axs[1].set_ylabel(r'BHO $T_{g}$ - 20CRv3 BHO $T_{2m}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     if use_fahrenheit == True:
         axs[0].set_ylim(0,80)
-        axs[1].set_ylim(-10,15)
+        axs[1].set_ylim(-15,15)
     else:
         axs[0].set_ylim(-20,30)
         axs[1].set_ylim(-1.5,0.5)
@@ -1817,6 +1916,8 @@ if plot_differences == True:
     mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_20CRv3_bho_1811_1959['T(1000hPa)'] )
     sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
@@ -1829,7 +1930,7 @@ if plot_differences == True:
     axs[1].set_ylabel(r'BHO $T_{g}$ - 20CRv3 BHO $T_{1000hPa}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     if use_fahrenheit == True:
         axs[0].set_ylim(0,80)
-        axs[1].set_ylim(-10,15)
+        axs[1].set_ylim(-15,15)
     else:
         axs[0].set_ylim(-20,30)
         axs[1].set_ylim(-1.5,0.5)
@@ -1852,6 +1953,8 @@ if plot_differences == True:
     mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_20CRv3_new_haven_1811_1959['T(2m)'] )
     sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
@@ -1864,7 +1967,7 @@ if plot_differences == True:
     axs[1].set_ylabel(r'BHO $T_{g}$ - 20CRv3 New Haven $T_{2m}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     if use_fahrenheit == True:
         axs[0].set_ylim(0,80)
-        axs[1].set_ylim(-10,15)
+        axs[1].set_ylim(-15,15)
     else:
         axs[0].set_ylim(-20,30)
         axs[1].set_ylim(-1.5,0.5)
@@ -1887,6 +1990,8 @@ if plot_differences == True:
     mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_20CRv3_new_haven_1811_1959['T(1000hPa)'] )
     sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
@@ -1899,7 +2004,7 @@ if plot_differences == True:
     axs[1].set_ylabel(r'BHO $T_{g}$ - 20CRv3 New Haven $T_{1000hPa}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     if use_fahrenheit == True:
         axs[0].set_ylim(0,80)
-        axs[1].set_ylim(-10,15)
+        axs[1].set_ylim(-15,15)
     else:
         axs[0].set_ylim(-20,30)
         axs[1].set_ylim(-1.5,0.5)
@@ -2707,6 +2812,11 @@ if plot_temp == True:
     sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO')
     axs[0].plot(df_USW00014739_1959_2020.index, df_USW00014739_1959_2020['Tgm'], marker='.', color='b', alpha=1.0, label='$T_{g}$ (from daily) GHCND Boston')
     axs[1].plot(df_blue_hill_1959_2020.index, df_blue_hill_1959_2020['blue_hill'] - df_USW00014739_1959_2020['Tgm'], color='teal')
+    
+    mean_difference = np.nanmean( df_blue_hill_1959_2020['blue_hill'] - df_USW00014739_1959_2020['Tgm'] )
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=len(df_blue_hill_1959_2020)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
@@ -2718,7 +2828,7 @@ if plot_temp == True:
     axs[1].set_ylabel(r'BHO $T_{g}$ - GHCND $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     if use_fahrenheit == True:
         axs[0].set_ylim(0,80)
-        axs[1].set_ylim(-9,3)
+        axs[1].set_ylim(-15,15)
     else:
         axs[0].set_ylim(-20,30)
         axs[1].set_ylim(-1.5,0.5)
@@ -2735,6 +2845,11 @@ if plot_temp == True:
     sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO')
     axs[0].plot(df_USW00014765_1959_2020.index, df_USW00014765_1959_2020['Tgm'], marker='.', color='b', alpha=1.0, label='$T_{g}$ (from daily) GHCND Providence')
     axs[1].plot(df_blue_hill_1959_2020.index, df_blue_hill_1959_2020['blue_hill'] - df_USW00014765_1959_2020['Tgm'], color='teal')
+
+    mean_difference = np.nanmean( df_blue_hill_1959_2020['blue_hill'] - df_USW00014765_1959_2020['Tgm'] )
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=len(df_blue_hill_1959_2020)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
@@ -2746,7 +2861,7 @@ if plot_temp == True:
     axs[1].set_ylabel(r'BHO $T_{g}$ - GHCND $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     if use_fahrenheit == True:
         axs[0].set_ylim(0,80)
-        axs[1].set_ylim(-9,3)
+        axs[1].set_ylim(-15,15)
     else:
         axs[0].set_ylim(-20,30)
         axs[1].set_ylim(-1.5,0.5)
@@ -2763,6 +2878,11 @@ if plot_temp == True:
     sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO')
     axs[0].plot(df_USW00014758_1959_2020.index, df_USW00014758_1959_2020['Tgm'], marker='.', color='b', alpha=1.0, label='$T_{g}$ (from daily) GHCND New Haven Tweed Airport')
     axs[1].plot(df_blue_hill_1959_2020.index, df_blue_hill_1959_2020['blue_hill'] - df_USW00014758_1959_2020['Tgm'], color='teal')
+
+    mean_difference = np.nanmean( df_blue_hill_1959_2020['blue_hill'] - df_USW00014758_1959_2020['Tgm'] )
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=len(df_blue_hill_1959_2020)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
@@ -2774,7 +2894,7 @@ if plot_temp == True:
     axs[1].set_ylabel(r'BHO $T_{g}$ - GHCND $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     if use_fahrenheit == True:
         axs[0].set_ylim(0,80)
-        axs[1].set_ylim(-9,3)
+        axs[1].set_ylim(-15,15)
     else:
         axs[0].set_ylim(-20,30)
         axs[1].set_ylim(-1.5,0.5)
@@ -2791,6 +2911,11 @@ if plot_temp == True:
     sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO')
     axs[0].plot(df_USC00065910_1959_2020.index, df_USC00065910_1959_2020['Tgm'], marker='.', color='b', alpha=1.0, label='$T_{g}$ (from daily) GHCND Norwich')
     axs[1].plot(df_blue_hill_1959_2020.index, df_blue_hill_1959_2020['blue_hill'] - df_USC00065910_1959_2020['Tgm'], color='teal')
+
+    mean_difference = np.nanmean( df_blue_hill_1959_2020['blue_hill'] - df_USC00065910_1959_2020['Tgm'] )
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=len(df_blue_hill_1959_2020)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs[0].set_xlabel('', fontsize=fontsize)
     axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
@@ -2802,7 +2927,7 @@ if plot_temp == True:
     axs[1].set_ylabel(r'BHO $T_{g}$ - GHCND $T_{g}$, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     if use_fahrenheit == True:
         axs[0].set_ylim(0,80)
-        axs[1].set_ylim(-9,3)
+        axs[1].set_ylim(-15,15)
     else:
         axs[0].set_ylim(-20,30)
         axs[1].set_ylim(-1.5,0.5)
@@ -2810,18 +2935,5 @@ if plot_temp == True:
     plt.savefig(figstr, dpi=300)
     plt.close('all')    
     
-df_USC00199928_1959_2020 = df_USC00199928[ (df_USC00199928.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # WORCESTER, MA
-df_USW00094701_1959_2020 = df_USW00094701[ (df_USW00094701.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # BOSTON CITY WSO, MA
-df_USC00190736_1959_2020 = df_USC00190736[ (df_USC00190736.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # BLUE HILL, MA
-df_USC00194105_1959_2020 = df_USC00194105[ (df_USC00194105.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # LAWRENCE, MA
-df_USC00190120_1959_2020 = df_USC00190120[ (df_USC00190120.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # AMHERST, MA
-df_USC00376712_1959_2020 = df_USC00376712[ (df_USC00376712.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # PROVIDENCE 2, RI
-df_USC00190538_1959_2020 = df_USC00190538[ (df_USC00190538.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # BEDFORD, MA
-df_USC00195306_1959_2020 = df_USC00195306[ (df_USC00195306.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # NEW SALEM, MA
-df_USW00014739_1959_2020 = df_USW00014739[ (df_USW00014739.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # BOSTON, MA
-df_USW00014765_1959_2020 = df_USW00014765[ (df_USW00014765.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # PROVIDENCE, RI
-df_USW00014758_1959_2020 = df_USW00014758[ (df_USW00014758.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # NEW HAVEN TWEED AIRPORT, CT
-df_USC00065910_1959_2020 = df_USC00065910[ (df_USC00065910.index>=pd.to_datetime('1961-01-01')) & (df_bho_tgm.index<=pd.to_datetime('2020-12-01')) ] # NORWICH, CT
 
-    
     
