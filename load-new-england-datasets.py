@@ -166,6 +166,22 @@ def is_leap_and_29Feb(s):
 # LOAD: Datasets
 #==============================================================================
 
+if load_hadcrut5 == True:
+    
+    # LOAD: HadCRUT5-analysis (5x5 absolutes)
+        
+    df_hadcrut5_bho = pd.read_csv('OUT/df_hadcrut5_bho.csv', index_col=0)
+    df_hadcrut5_bho.index = pd.to_datetime(df_hadcrut5_bho.index)
+    
+else:
+    
+    #-----------------------------------------------------------------------------
+    # LOAD: HadCRUT5-analysis (monthly) gridded 5x5 absolute temperature (1850-2020)
+    #-----------------------------------------------------------------------------
+
+    # Dataset: 
+
+    
 if load_20crv3 == True:
 
     # LOAD: 20CRv3 for BHO at 2m and at 1000 hPa
