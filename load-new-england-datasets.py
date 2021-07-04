@@ -109,19 +109,22 @@ load_glosat = True
 load_ghcnm = True
 load_20crv3 = True
 load_hadcrut5 = True
+load_cet = True
 
-save_monthly_adjustments = False
-save_glosat_adjustments = False
+save_monthly_adjustments = True
+save_glosat_adjustments = True
 
-plot_historical = False
-plot_differences = False
-plot_differences_heatmap = False
-plot_kde = False
-plot_ghcn = False
-plot_inventory = False
-plot_glosat_neighbours = False
-plot_bho_all_sources = False
-plot_glosat_adjusted_vs_neighbours = False
+plot_historical = True
+plot_differences = True
+plot_differences_heatmap = True
+plot_kde = True
+plot_ghcn = True
+plot_inventory = True
+plot_glosat_neighbours = True
+plot_bho_all_sources = True
+plot_glosat_adjusted_vs_neighbours = True
+plot_glosat_adjusted_with_back_extension = True
+plot_glosat_adjusted_with_back_extension_vs_cet = True
 
 if use_fahrenheit: 
     temperature_unit = 'F'
@@ -162,11 +165,149 @@ def centigrade_to_fahrenheit(x):
 
 def is_leap_and_29Feb(s):
     return (s.index.year % 4 == 0) & ((s.index.year % 100 != 0) | (s.index.year % 400 == 0)) & (s.index.month == 2) & (s.index.day == 29)
+
+def convert_datetime_to_year_decimal(df, yearstr):
+
+    if yearstr == 'datetime':
+        t_monthly_xr = xr.cftime_range(start=str(df.index.year[0]), periods=len(df), freq='MS', calendar='all_leap')
+    else:
+        t_monthly_xr = xr.cftime_range(start=str(df[yearstr].iloc[0]), periods=len(df)*12, freq='MS', calendar='all_leap')
+    year = [t_monthly_xr[i].year for i in range(len(t_monthly_xr))]
+    year_frac = []
+    for i in range(len(t_monthly_xr)):
+        if i%12 == 0:
+            istart = i
+            iend = istart+11                  
+            frac = np.cumsum([t_monthly_xr[istart+j].day for j in range(12)])               
+            year_frac += list(frac/frac[-1])            
+        else:                
+            i += 1
+    year_decimal = [float(year[i])+year_frac[i] for i in range(len(year))]    
+    return year_decimal
     
 #==============================================================================
 # LOAD: Datasets
 #==============================================================================
 
+if load_glosat == True:
+    
+    #------------------------------------------------------------------------------    
+    # LOAD: GloSAT absolute temperature archive: CRUTEM5.0.1.0
+    #------------------------------------------------------------------------------
+        
+    print('loading temperatures ...')
+        
+    df_temp = pd.read_pickle('DATA/df_temp.pkl', compression='bz2')    
+    
+    stationcode_amherst = '720218'
+    stationcode_bedford = '720219'
+    stationcode_blue_hill = '744920'
+    stationcode_boston_city_wso = '725092'
+    stationcode_kingston = '753011'
+    stationcode_lawrence = '720222'
+    stationcode_new_bedford = '720223'
+    stationcode_new_haven = '725045'    
+    stationcode_plymouth_kingston = '756213'
+    stationcode_providence_wso = '725070'
+    stationcode_provincetown = '725091'
+    stationcode_reading = '725090'
+    stationcode_taunton = '720225'
+    stationcode_walpole_2 = '744900'
+    stationcode_west_medway = '744902'
+
+#   da_salem_cgar = df_temp.columns                                                         # USC00197124	SALEM COAST GUARD AIR STATION, MA US 1948-1967
+#   da_salem_b = df_temp.columns                                                            # USC00197122	SALEM B, MA US 1885-1909
+#   da_boston = df_temp.columns                                                             # USW00014739	BOSTON, MA US 1936-2021
+#   da_new_salem = df_temp.columns                                                          # USC00195306	NEW SALEM, MA US 1897-1998
+
+    da_amherst = df_temp[df_temp['stationcode']==stationcode_amherst]                       # USC00190120	AMHERST, MA US 1893-2021
+    da_bedford = df_temp[df_temp['stationcode']==stationcode_bedford]                       # USC00190538	BEDFORD, MA US 1893-1923
+    da_blue_hill = df_temp[df_temp['stationcode']==stationcode_blue_hill]                   # USC00190736	BLUE HILL COOP, MA US 1893-2021
+    da_boston_city_wso = df_temp[df_temp['stationcode']==stationcode_boston_city_wso]       # USW00094701	BOSTON CITY WEATHER SERVICE OFFICE, MA US 1893-1935
+    da_kingston = df_temp[df_temp['stationcode']==stationcode_kingston]                      
+    da_lawrence = df_temp[df_temp['stationcode']==stationcode_lawrence]                     # USC00194105	LAWRENCE, MA US 1893-2021
+    da_new_bedford = df_temp[df_temp['stationcode']==stationcode_new_bedford]            
+    da_new_haven = df_temp[df_temp['stationcode']==stationcode_new_haven]                    
+    da_plymouth_kingston = df_temp[df_temp['stationcode']==stationcode_plymouth_kingston]    
+    da_providence_wso = df_temp[df_temp['stationcode']==stationcode_providence_wso]         # USC00376712	PROVIDENCE 2, RI US 1893-1913
+    da_provincetown = df_temp[df_temp['stationcode']==stationcode_provincetown]             
+    da_reading = df_temp[df_temp['stationcode']==stationcode_reading]                       
+    da_taunton = df_temp[df_temp['stationcode']==stationcode_taunton]                       
+    da_walpole_2 = df_temp[df_temp['stationcode']==stationcode_walpole_2]                   
+    da_west_medway = df_temp[df_temp['stationcode']==stationcode_west_medway]               
+
+    ts = np.array(da_amherst.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_amherst.year.iloc[0]), periods=len(ts), freq='MS')
+    df_amherst = pd.DataFrame({'amherst':ts}, index=t) 
+    ts = np.array(da_bedford.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_bedford.year.iloc[0]), periods=len(ts), freq='MS')
+    df_bedford = pd.DataFrame({'bedford':ts}, index=t) 
+    ts = np.array(da_blue_hill.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_blue_hill.year.iloc[0]), periods=len(ts), freq='MS')
+    df_blue_hill = pd.DataFrame({'blue_hill':ts}, index=t)    
+    ts = np.array(da_boston_city_wso.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_boston_city_wso.year.iloc[0]), periods=len(ts), freq='MS')
+    df_boston_city_wso = pd.DataFrame({'boston_city_wso':ts}, index=t)        
+    ts = np.array(da_kingston.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_kingston.year.iloc[0]), periods=len(ts), freq='MS')
+    df_kingston = pd.DataFrame({'kingston':ts}, index=t) 
+    ts = np.array(da_lawrence.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_lawrence.year.iloc[0]), periods=len(ts), freq='MS')
+    df_lawrence = pd.DataFrame({'lawrence':ts}, index=t) 
+    ts = np.array(da_new_bedford.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_new_bedford.year.iloc[0]), periods=len(ts), freq='MS')
+    df_new_bedford = pd.DataFrame({'new_bedford':ts}, index=t) 
+    ts = np.array(da_new_haven.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_new_haven.year.iloc[0]), periods=len(ts), freq='MS')
+    df_new_haven = pd.DataFrame({'new_haven':ts}, index=t)     
+    ts = np.array(da_plymouth_kingston.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_plymouth_kingston.year.iloc[0]), periods=len(ts), freq='MS')
+    df_plymouth_kingston = pd.DataFrame({'plymouth_kingston':ts}, index=t)     
+    ts = np.array(da_providence_wso.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_providence_wso.year.iloc[0]), periods=len(ts), freq='MS')
+    df_providence_wso = pd.DataFrame({'providence_wso':ts}, index=t) 
+    ts = np.array(da_provincetown.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_provincetown.year.iloc[0]), periods=len(ts), freq='MS')
+    df_provincetown = pd.DataFrame({'provincetown':ts}, index=t) 
+    ts = np.array(da_reading.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_reading.year.iloc[0]), periods=len(ts), freq='MS')
+    df_reading = pd.DataFrame({'reading':ts}, index=t) 
+    ts = np.array(da_taunton.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_taunton.year.iloc[0]), periods=len(ts), freq='MS')
+    df_taunton = pd.DataFrame({'taunton':ts}, index=t) 
+    ts = np.array(da_walpole_2.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_walpole_2.year.iloc[0]), periods=len(ts), freq='MS')
+    df_walpole_2 = pd.DataFrame({'walpole_2':ts}, index=t) 
+    ts = np.array(da_west_medway.groupby('year').mean().iloc[:,0:12]).ravel()
+    t = pd.date_range(start=str(da_west_medway.year.iloc[0]), periods=len(ts), freq='MS')
+    df_west_medway = pd.DataFrame({'west_medway':ts}, index=t) 
+
+#==============================================================================
+    
+if load_cet == True:
+    
+    # LOAD: CET (NB: decimal year due to Pandas <1678 and >2262 calendar limit)
+        
+    df_cet = pd.read_csv('OUT/df_cet.csv', index_col=0)
+    
+else:
+    
+    #-----------------------------------------------------------------------------
+    # LOAD: CET (monthly)
+    #-----------------------------------------------------------------------------
+
+    # DATA: https://www.metoffice.gov.uk/hadobs/hadcet/    
+        
+    stationcode_cet = '037401'
+    da_cet = df_temp[df_temp['stationcode']==stationcode_cet]                       
+    ts = np.array(da_cet.groupby('year').mean().iloc[:,0:12]).ravel()
+    if da_cet['year'].iloc[0] > 1678:
+        t_monthly = pd.date_range(start=str(da_cet['year'].iloc[0]), periods=len(ts), freq='MS')          
+    else:
+        t_monthly = convert_datetime_to_year_decimal(da_cet, 'year')            
+    df_cet = pd.DataFrame({'cet':ts}, index=t_monthly) 
+    df_cet.to_csv('df_cet.csv')
+                
 if load_hadcrut5 == True:
     
     # LOAD: HadCRUT5-analysis (5x5 absolutes)
@@ -357,101 +498,6 @@ else:
     t = pd.date_range(start=str(df_ghcnmv4_qcf.year.iloc[0]), periods=len(ts), freq='MS')
     df_ghcnmv4_qcf = pd.DataFrame({'df_ghcnmv4_qcf':ts}, index=t) 
     df_ghcnmv4_qcf.to_csv('df_ghcnmv4_qcf.csv')
-
-#==============================================================================
-
-if load_glosat == True:
-    
-    #------------------------------------------------------------------------------    
-    # LOAD: GloSAT absolute temperature archive: CRUTEM5.0.1.0
-    #------------------------------------------------------------------------------
-        
-    print('loading temperatures ...')
-        
-    df_temp = pd.read_pickle('DATA/df_temp.pkl', compression='bz2')    
-    
-    stationcode_amherst = '720218'
-    stationcode_bedford = '720219'
-    stationcode_blue_hill = '744920'
-    stationcode_boston_city_wso = '725092'
-    stationcode_kingston = '753011'
-    stationcode_lawrence = '720222'
-    stationcode_new_bedford = '720223'
-    stationcode_new_haven = '725045'    
-    stationcode_plymouth_kingston = '756213'
-    stationcode_providence_wso = '725070'
-    stationcode_provincetown = '725091'
-    stationcode_reading = '725090'
-    stationcode_taunton = '720225'
-    stationcode_walpole_2 = '744900'
-    stationcode_west_medway = '744902'
-
-#   da_salem_cgar = df_temp.columns                                                         # USC00197124	SALEM COAST GUARD AIR STATION, MA US 1948-1967
-#   da_salem_b = df_temp.columns                                                            # USC00197122	SALEM B, MA US 1885-1909
-#   da_boston = df_temp.columns                                                             # USW00014739	BOSTON, MA US 1936-2021
-#   da_new_salem = df_temp.columns                                                          # USC00195306	NEW SALEM, MA US 1897-1998
-
-    da_amherst = df_temp[df_temp['stationcode']==stationcode_amherst]                       # USC00190120	AMHERST, MA US 1893-2021
-    da_bedford = df_temp[df_temp['stationcode']==stationcode_bedford]                       # USC00190538	BEDFORD, MA US 1893-1923
-    da_blue_hill = df_temp[df_temp['stationcode']==stationcode_blue_hill]                   # USC00190736	BLUE HILL COOP, MA US 1893-2021
-    da_boston_city_wso = df_temp[df_temp['stationcode']==stationcode_boston_city_wso]       # USW00094701	BOSTON CITY WEATHER SERVICE OFFICE, MA US 1893-1935
-    da_kingston = df_temp[df_temp['stationcode']==stationcode_kingston]                      
-    da_lawrence = df_temp[df_temp['stationcode']==stationcode_lawrence]                     # USC00194105	LAWRENCE, MA US 1893-2021
-    da_new_bedford = df_temp[df_temp['stationcode']==stationcode_new_bedford]            
-    da_new_haven = df_temp[df_temp['stationcode']==stationcode_new_haven]                    
-    da_plymouth_kingston = df_temp[df_temp['stationcode']==stationcode_plymouth_kingston]    
-    da_providence_wso = df_temp[df_temp['stationcode']==stationcode_providence_wso]         # USC00376712	PROVIDENCE 2, RI US 1893-1913
-    da_provincetown = df_temp[df_temp['stationcode']==stationcode_provincetown]             
-    da_reading = df_temp[df_temp['stationcode']==stationcode_reading]                       
-    da_taunton = df_temp[df_temp['stationcode']==stationcode_taunton]                       
-    da_walpole_2 = df_temp[df_temp['stationcode']==stationcode_walpole_2]                   
-    da_west_medway = df_temp[df_temp['stationcode']==stationcode_west_medway]               
-
-    ts = np.array(da_amherst.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_amherst.year.iloc[0]), periods=len(ts), freq='MS')
-    df_amherst = pd.DataFrame({'amherst':ts}, index=t) 
-    ts = np.array(da_bedford.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_bedford.year.iloc[0]), periods=len(ts), freq='MS')
-    df_bedford = pd.DataFrame({'bedford':ts}, index=t) 
-    ts = np.array(da_blue_hill.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_blue_hill.year.iloc[0]), periods=len(ts), freq='MS')
-    df_blue_hill = pd.DataFrame({'blue_hill':ts}, index=t)    
-    ts = np.array(da_boston_city_wso.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_boston_city_wso.year.iloc[0]), periods=len(ts), freq='MS')
-    df_boston_city_wso = pd.DataFrame({'boston_city_wso':ts}, index=t)        
-    ts = np.array(da_kingston.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_kingston.year.iloc[0]), periods=len(ts), freq='MS')
-    df_kingston = pd.DataFrame({'kingston':ts}, index=t) 
-    ts = np.array(da_lawrence.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_lawrence.year.iloc[0]), periods=len(ts), freq='MS')
-    df_lawrence = pd.DataFrame({'lawrence':ts}, index=t) 
-    ts = np.array(da_new_bedford.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_new_bedford.year.iloc[0]), periods=len(ts), freq='MS')
-    df_new_bedford = pd.DataFrame({'new_bedford':ts}, index=t) 
-    ts = np.array(da_new_haven.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_new_haven.year.iloc[0]), periods=len(ts), freq='MS')
-    df_new_haven = pd.DataFrame({'new_haven':ts}, index=t)     
-    ts = np.array(da_plymouth_kingston.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_plymouth_kingston.year.iloc[0]), periods=len(ts), freq='MS')
-    df_plymouth_kingston = pd.DataFrame({'plymouth_kingston':ts}, index=t)     
-    ts = np.array(da_providence_wso.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_providence_wso.year.iloc[0]), periods=len(ts), freq='MS')
-    df_providence_wso = pd.DataFrame({'providence_wso':ts}, index=t) 
-    ts = np.array(da_provincetown.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_provincetown.year.iloc[0]), periods=len(ts), freq='MS')
-    df_provincetown = pd.DataFrame({'provincetown':ts}, index=t) 
-    ts = np.array(da_reading.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_reading.year.iloc[0]), periods=len(ts), freq='MS')
-    df_reading = pd.DataFrame({'reading':ts}, index=t) 
-    ts = np.array(da_taunton.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_taunton.year.iloc[0]), periods=len(ts), freq='MS')
-    df_taunton = pd.DataFrame({'taunton':ts}, index=t) 
-    ts = np.array(da_walpole_2.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_walpole_2.year.iloc[0]), periods=len(ts), freq='MS')
-    df_walpole_2 = pd.DataFrame({'walpole_2':ts}, index=t) 
-    ts = np.array(da_west_medway.groupby('year').mean().iloc[:,0:12]).ravel()
-    t = pd.date_range(start=str(da_west_medway.year.iloc[0]), periods=len(ts), freq='MS')
-    df_west_medway = pd.DataFrame({'west_medway':ts}, index=t) 
     
 #==============================================================================
             
@@ -1189,6 +1235,10 @@ for i in range(len(stationcodes)):
 #------------------------------------------------------------------------------
 
 if use_fahrenheit == True:
+
+    df_holyoke = centigrade_to_fahrenheit( df_holyoke )        
+    df_wigglesworth = centigrade_to_fahrenheit( df_wigglesworth )        
+    df_farrar = centigrade_to_fahrenheit( df_farrar )        
     
     df_amherst = pd.DataFrame({'amherst':centigrade_to_fahrenheit( df_amherst['amherst'] )})        
     df_bedford = pd.DataFrame({'bedford':centigrade_to_fahrenheit( df_bedford['bedford'] )})        
@@ -1205,20 +1255,6 @@ if use_fahrenheit == True:
     df_taunton = pd.DataFrame({'taunton':centigrade_to_fahrenheit( df_taunton['taunton'] )})        
     df_walpole_2 = pd.DataFrame({'walpole_2':centigrade_to_fahrenheit( df_walpole_2['walpole_2'] )})       
     df_west_medway = pd.DataFrame({'west_medway':centigrade_to_fahrenheit( df_west_medway['west_medway'] )})        
-    df_ghcnmv4_qcf = pd.DataFrame({'df_ghcnmv4_qcf':centigrade_to_fahrenheit( df_ghcnmv4_qcf['df_ghcnmv4_qcf'] )})        
-    df_ghcnmv4_qcu = pd.DataFrame({'df_ghcnmv4_qcu':centigrade_to_fahrenheit( df_ghcnmv4_qcu['df_ghcnmv4_qcu'] )})       
-    df_20CRv3_new_haven = pd.DataFrame({
-        'T(2m)':centigrade_to_fahrenheit( df_20CRv3_new_haven['T(2m)'] ),
-        'T(1000hPa)':centigrade_to_fahrenheit( df_20CRv3_new_haven['T(1000hPa)'] ),
-        'T(2m) spread':centigrade_to_fahrenheit( df_20CRv3_new_haven['T(2m) spread'] ) - 32.0,
-        'T(1000hPa) spread':centigrade_to_fahrenheit( df_20CRv3_new_haven['T(1000hPa) spread'] ) - 32.0,
-        })
-    df_20CRv3_bho = pd.DataFrame({
-        'T(2m)':centigrade_to_fahrenheit( df_20CRv3_bho['T(2m)'] ),
-        'T(1000hPa)':centigrade_to_fahrenheit( df_20CRv3_bho['T(1000hPa)'] ),
-        'T(2m) spread':centigrade_to_fahrenheit( df_20CRv3_bho['T(2m) spread'] ) - 32.0,
-        'T(1000hPa) spread':centigrade_to_fahrenheit( df_20CRv3_bho['T(1000hPa) spread'] ) - 32.0
-        })
 
     df_USC00199928 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USC00199928['Tgm'] )}) # WORCESTER, MA
     df_USW00094701 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USW00094701['Tgm'] )}) # BOSTON CITY WSO, MA
@@ -1233,6 +1269,26 @@ if use_fahrenheit == True:
     df_USW00014758 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USW00014758['Tgm'] )}) # NEW HAVEN TWEED AIRPORT, CT
     df_USC00065910 = pd.DataFrame({'Tgm':centigrade_to_fahrenheit( df_USC00065910['Tgm'] )}) # NORWICH, CT
 
+    df_ghcnmv4_qcf = pd.DataFrame({'df_ghcnmv4_qcf':centigrade_to_fahrenheit( df_ghcnmv4_qcf['df_ghcnmv4_qcf'] )})        
+    df_ghcnmv4_qcu = pd.DataFrame({'df_ghcnmv4_qcu':centigrade_to_fahrenheit( df_ghcnmv4_qcu['df_ghcnmv4_qcu'] )})     
+    
+    df_20CRv3_new_haven = pd.DataFrame({
+        'T(2m)':centigrade_to_fahrenheit( df_20CRv3_new_haven['T(2m)'] ),
+        'T(1000hPa)':centigrade_to_fahrenheit( df_20CRv3_new_haven['T(1000hPa)'] ),
+        'T(2m) spread':centigrade_to_fahrenheit( df_20CRv3_new_haven['T(2m) spread'] ) - 32.0,
+        'T(1000hPa) spread':centigrade_to_fahrenheit( df_20CRv3_new_haven['T(1000hPa) spread'] ) - 32.0,
+        })
+    df_20CRv3_bho = pd.DataFrame({
+        'T(2m)':centigrade_to_fahrenheit( df_20CRv3_bho['T(2m)'] ),
+        'T(1000hPa)':centigrade_to_fahrenheit( df_20CRv3_bho['T(1000hPa)'] ),
+        'T(2m) spread':centigrade_to_fahrenheit( df_20CRv3_bho['T(2m) spread'] ) - 32.0,
+        'T(1000hPa) spread':centigrade_to_fahrenheit( df_20CRv3_bho['T(1000hPa) spread'] ) - 32.0
+        })
+
+    df_hadcrut5_bho = pd.DataFrame({'df_hadcrut5_bho':centigrade_to_fahrenheit( df_hadcrut5_bho['T(2m)'] )})        
+    df_hadcrut5_new_haven = pd.DataFrame({'df_hadcrut5_new_haven':centigrade_to_fahrenheit( df_hadcrut5_new_haven['T(2m)'] )})     
+    df_cet = pd.DataFrame({'df_cet':centigrade_to_fahrenheit( df_cet['cet'] )})        
+    
 else:
     
     df_bho_2828 = pd.DataFrame({'T2828':fahrenheit_to_centigrade( df_bho_2828['T2828'] )})   
@@ -1248,7 +1304,7 @@ else:
         'Tmax':fahrenheit_to_centigrade( df_bho_monthly['Tmax'] ),        
         'Tgm':fahrenheit_to_centigrade( df_bho_monthly['Tgm'] )
         })   
-        
+            
 #------------------------------------------------------------------------------
 # CALCULATE: Tobs monthly adjustments using 60 years of data 1961-2020 Tobs = 00:00 - 00:00
 #------------------------------------------------------------------------------
@@ -1372,7 +1428,52 @@ df_blue_hill_1811_1959_tobs_adjusted = df_blue_hill_1811_1959.copy()
 df_ghcnmv4_qcu_1811_1959 = df_ghcnmv4_qcu[ (df_ghcnmv4_qcu.index>=pd.to_datetime('1811-01-01')) & (df_ghcnmv4_qcu.index<=pd.to_datetime('1959-05-01'))] 
 df_ghcnmv4_qcf_1811_1959 = df_ghcnmv4_qcf[ (df_ghcnmv4_qcf.index>=pd.to_datetime('1811-01-01')) & (df_ghcnmv4_qcf.index<=pd.to_datetime('1959-05-01'))] 
 
+# CALCULATE: delta normals
 
+normal_blue_hill = np.nanmean( df_blue_hill_1811_2020_tobs_adjusted[     
+(df_blue_hill_1811_2020_tobs_adjusted.index>=pd.to_datetime('1961-01-01')) & 
+(df_blue_hill_1811_2020_tobs_adjusted.index<=pd.to_datetime('1990-12-01')) ]['blue_hill'])
+    
+normal_boston_city_wso = np.nanmean( df_boston_city_wso[     
+(df_boston_city_wso.index>=pd.to_datetime('1961-01-01')) & 
+(df_boston_city_wso.index<=pd.to_datetime('1990-12-01')) ]['boston_city_wso'])
+    
+normal_new_haven = np.nanmean( df_new_haven[     
+(df_new_haven.index>=pd.to_datetime('1961-01-01')) & 
+(df_new_haven.index<=pd.to_datetime('1990-12-01')) ]['new_haven'])
+    
+normal_providence_wso = np.nanmean( df_providence_wso[     
+(df_providence_wso.index>=pd.to_datetime('1961-01-01')) & 
+(df_providence_wso.index<=pd.to_datetime('1990-12-01')) ]['providence_wso'])
+
+# CALCULATE: Holyoke daily T(919) and Wigglesworth daily T(919) and reample to monthly timescale
+     
+df_holyoke_919 = (df_holyoke['T(08:00)']+df_holyoke['T(13:00)']+df_holyoke['T(22:00)']+df_holyoke['T(sunset)'])/4.0
+df_holyoke_919 = pd.DataFrame({'T(919)':df_holyoke_919.values}, index=pd.to_datetime(df_holyoke_919.index))
+df_holyoke_919.index.name = 'datetime'
+df_holyoke_919_xr = df_holyoke_919.to_xarray()
+df_holyoke_919_xr_resampled = df_holyoke_919_xr['T(919)'].resample(datetime='MS').mean().to_dataset()
+df_holyoke_919 = pd.DataFrame({'T(919)':df_holyoke_919_xr_resampled['T(919)'].values}, index=df_holyoke_919_xr_resampled.datetime.values)
+df_holyoke_919.index.name = 'datetime'
+    
+df_wigglesworth_919 = (df_wigglesworth['T(08:00)']+df_wigglesworth['T(13:00)']+df_wigglesworth['T(21:00)'])/3.0
+df_wigglesworth_919 = pd.DataFrame({'T(919)':df_wigglesworth_919.values}, index=pd.to_datetime(df_wigglesworth_919.index))
+df_wigglesworth_919.index.name = 'datetime'
+df_wigglesworth_919_xr = df_wigglesworth_919.to_xarray()
+df_wigglesworth_919_xr_resampled = df_wigglesworth_919_xr['T(919)'].resample(datetime='MS').mean().to_dataset()
+df_wigglesworth_919 = pd.DataFrame({'T(919)':df_wigglesworth_919_xr_resampled['T(919)'].values}, index=df_wigglesworth_919_xr_resampled.datetime.values)
+df_wigglesworth_919.index.name = 'datetime'
+    
+df_farrar_919 = df_farrar['Tmean']
+df_farrar_919 = pd.DataFrame({'T(919)':df_farrar_919.values}, index=pd.to_datetime(df_farrar_919.index))
+df_farrar_919.index.name = 'datetime'
+    
+# CALCULATE: back-extension using Farrar downshifted using Boston normal
+    
+df_farrar_aligned = (df_farrar_919.copy() - (normal_boston_city_wso - normal_blue_hill))
+df_farrar_1790_1810 = df_farrar_aligned[df_farrar_aligned.index<pd.to_datetime('1811-01-01')]
+df_farrar_1790_1810_shifted = df_farrar_1790_1810.rename(columns = {'T(919)':'blue_hill'})
+df_blue_hill_1790_2020_tobs_adjusted = df_farrar_1790_1810_shifted.append(df_blue_hill_1811_2020_tobs_adjusted)
 
 #------------------------------------------------------------------------------
 # PLOTS
@@ -1381,7 +1482,7 @@ df_ghcnmv4_qcf_1811_1959 = df_ghcnmv4_qcf[ (df_ghcnmv4_qcf.index>=pd.to_datetime
 #------------------------------------------------------------------------------
 # SEABORN:
 #
-# sns.jointplot(x=x y=y, kind='kde', color='b', marker='+', fill=True)  # kind{ “scatter” | “kde” | “hist” | “hex” | “reg” | “resid” }            
+# sns.jointplot(x=x y=y, kind='kde', color='blue', marker='+', fill=True)  # kind{ “scatter” | “kde” | “hist” | “hex” | “reg” | “resid” }            
 
 # jointgrid = sns.JointGrid(x=x, y=y, data=df)
 # jointgrid.plot_joint(sns.scatterplot)
@@ -1392,10 +1493,10 @@ df_ghcnmv4_qcf_1811_1959 = df_ghcnmv4_qcf[ (df_ghcnmv4_qcf.index>=pd.to_datetime
 # pairgrid = pairgrid.map_diag(plt.hist)
 # pairgrid = pairgrid.map_lower(sns.kdeplot)
 
-# sns.scatterplot(x=dx, y=y, s=5, color="b")
+# sns.scatterplot(x=dx, y=y, s=5, color="blue")
 # sns.histplot(x=x, y=y, bins=100, pthresh=0.01, cmap="Blues")
 # sns.kdeplot(x=x, y=y, levels=10, color="k", linewidths=1)
-# sns.kdeplot(x, color='b', shade=True, alpha=0.2, legend=True, **kwargs, label='')
+# sns.kdeplot(x, color='blue', shade=True, alpha=0.2, legend=True, **kwargs, label='')
 # sns.boxplot(data = df_bho_monthly, orient = "v")
 # sns.violinplot(data = df_bho_monthly, orient = "v")
 #------------------------------------------------------------------------------
@@ -1413,19 +1514,14 @@ if plot_historical == True:
             
     fig, axs = plt.subplots(figsize=(15,10))
     
+    sns.lineplot(x=df_holyoke.index, y=(df_holyoke['T(08:00)']), ax=axs, marker='.', color='blue', alpha=1.0, label='Salem, MA: T(08:00)')
+    sns.lineplot(x=df_holyoke.index, y=(df_holyoke['T(13:00)']), ax=axs, marker='.', color='red', alpha=1.0, label='Salem, MA: T(13:00)')
+    sns.lineplot(x=df_holyoke.index, y=(df_holyoke['T(22:00)']), ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(22:00)')
+    sns.lineplot(x=df_holyoke.index, y=(df_holyoke['T(sunset)']), ax=axs, marker='.', color='orange', alpha=1.0, label='Salem, MA: T(sunset)')
+    sns.lineplot(x=df_farrar.index, y=(df_farrar['Tmean']), ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
     if use_fahrenheit == True:
-        sns.lineplot(x=df_holyoke.index, y=centigrade_to_fahrenheit(df_holyoke['T(08:00)']), ax=axs, marker='.', color='b', alpha=1.0, label='Salem, MA: T(08:00)')
-        sns.lineplot(x=df_holyoke.index, y=centigrade_to_fahrenheit(df_holyoke['T(13:00)']), ax=axs, marker='.', color='r', alpha=1.0, label='Salem, MA: T(13:00)')
-        sns.lineplot(x=df_holyoke.index, y=centigrade_to_fahrenheit(df_holyoke['T(22:00)']), ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(22:00)')
-        sns.lineplot(x=df_holyoke.index, y=centigrade_to_fahrenheit(df_holyoke['T(sunset)']), ax=axs, marker='.', color='orange', alpha=1.0, label='Salem, MA: T(sunset)')
-        sns.lineplot(x=df_farrar.index, y=centigrade_to_fahrenheit(df_farrar['Tmean']), ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
         axs.set_ylim(-20,110)
     else:
-        sns.lineplot(x=df_holyoke.index, y=df_holyoke['T(08:00)'], ax=axs, marker='.', color='b', alpha=1.0, label='Salem, MA: T(08:00)')
-        sns.lineplot(x=df_holyoke.index, y=df_holyoke['T(13:00)'], ax=axs, marker='.', color='r', alpha=1.0, label='Salem, MA: T(13:00)')
-        sns.lineplot(x=df_holyoke.index, y=df_holyoke['T(22:00)'], ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(22:00)')
-        sns.lineplot(x=df_holyoke.index, y=df_holyoke['T(sunset)'], ax=axs, marker='.', color='orange', alpha=1.0, label='Salem, MA: T(sunset)')
-        sns.lineplot(x=df_farrar.index, y=df_farrar['Tmean'], ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
         axs.set_ylim(-30,40)
     axs.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs.set_xlim(pd.Timestamp('1785-01-01'),pd.Timestamp('1835-01-01'))
@@ -1446,17 +1542,13 @@ if plot_historical == True:
     
     fig, axs = plt.subplots(figsize=(15,10))
     
+    sns.lineplot(x=df_wigglesworth.index, y=(df_wigglesworth['T(08:00)']), ax=axs, marker='.', color='blue', alpha=1.0, label='Salem, MA: T(08:00)')
+    sns.lineplot(x=df_wigglesworth.index, y=(df_wigglesworth['T(13:00)']), ax=axs, marker='.', color='red', alpha=1.0, label='Salem, MA: T(13:00)')
+    sns.lineplot(x=df_wigglesworth.index, y=(df_wigglesworth['T(21:00)']), ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(21:00)')
+    sns.lineplot(x=df_farrar.index, y=(df_farrar['Tmean']), ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
     if use_fahrenheit == True:
-        sns.lineplot(x=df_wigglesworth.index, y=centigrade_to_fahrenheit(df_wigglesworth['T(08:00)']), ax=axs, marker='.', color='b', alpha=1.0, label='Salem, MA: T(08:00)')
-        sns.lineplot(x=df_wigglesworth.index, y=centigrade_to_fahrenheit(df_wigglesworth['T(13:00)']), ax=axs, marker='.', color='r', alpha=1.0, label='Salem, MA: T(13:00)')
-        sns.lineplot(x=df_wigglesworth.index, y=centigrade_to_fahrenheit(df_wigglesworth['T(21:00)']), ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(21:00)')
-        sns.lineplot(x=df_farrar.index, y=centigrade_to_fahrenheit(df_farrar['Tmean']), ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
         axs.set_ylim(-20,110)
     else:
-        sns.lineplot(x=df_wigglesworth.index, y='T(08:00)', data=df_wigglesworth, ax=axs, marker='.', color='b', alpha=1.0, label='Salem, MA: T(08:00)')
-        sns.lineplot(x=df_wigglesworth.index, y='T(13:00)', data=df_wigglesworth, ax=axs, marker='.', color='r', alpha=1.0, label='Salem, MA: T(13:00)')
-        sns.lineplot(x=df_wigglesworth.index, y='T(21:00)', data=df_wigglesworth, ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA: T(21:00)')
-        sns.lineplot(x=df_farrar.index, y=df_farrar['Tmean'], ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA: T(mean)')
         axs.set_ylim(-30,40)
     axs.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     axs.set_xlim(pd.Timestamp('1785-01-01'),pd.Timestamp('1835-01-01'))
@@ -1480,19 +1572,19 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly BHO $T_{g}$ (from daily) vs BHO $T_g$'
     
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_bho_tg.index, y='Tgm', data=df_bho_monthly, ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ (from daily) BHO')
-    sns.lineplot(x=df_bho_tg.index, y='Tg', data=df_bho_monthly, ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ BHO')
+    sns.lineplot(x=df_bho_tg.index, y='Tgm', data=df_bho_monthly, ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ (from daily) BHO')
+    sns.lineplot(x=df_bho_tg.index, y='Tg', data=df_bho_monthly, ax=axs[0], marker='.', color='blue', alpha=1.0, label='$T_{g}$ BHO')
     sns.lineplot(x=df_bho_tg.index, y=df_bho_monthly['Tgm']-df_bho_monthly['Tg'], data=df_bho_monthly, ax=axs[1], color='teal')
     
     mask_pre_1891 = df_bho_tg.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_bho_tg.index >= pd.Timestamp('1891-01-01')) & (df_bho_tg.index < pd.Timestamp('1959-06-01'))
     mask_post_1959 = df_bho_tg.index >= pd.Timestamp('1959-06-01')
-    sns.lineplot(x=df_bho_tg.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_monthly['Tgm']-df_bho_monthly['Tg']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_bho_tg.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_monthly['Tgm']-df_bho_monthly['Tg']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_bho_tg.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_monthly['Tgm']-df_bho_monthly['Tg']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
+    sns.lineplot(x=df_bho_tg.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_monthly['Tgm']-df_bho_monthly['Tg']).values[mask_pre_1891]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_bho_tg.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_monthly['Tgm']-df_bho_monthly['Tg']).values[mask_1891_1959]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_bho_tg.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_monthly['Tgm']-df_bho_monthly['Tg']).values[mask_post_1959]) ], ls='--', lw=1, color='black')            
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
-    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='black')
+    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1891-01-01'), y=-0.1, s='1891-01')
     plt.text(x=pd.Timestamp('1959-06-01'), y=-0.1, s='1959-06')
     
@@ -1522,18 +1614,18 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly BHO $T_{2828}$ vs BHO $T_g$'
     
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{2828}$ BHO')
-    sns.lineplot(x=df_bho_2828.index, y=df_bho_tg['Tg'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ BHO')
+    sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{2828}$ BHO')
+    sns.lineplot(x=df_bho_2828.index, y=df_bho_tg['Tg'], ax=axs[0], marker='.', color='blue', alpha=1.0, label='$T_{g}$ BHO')
     sns.lineplot(x=df_bho_2828.index, y=df_bho_2828['T2828'] - df_bho_tg['Tg'], ax=axs[1], color='teal')
 
     mask_pre_1891 = df_bho_2828.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_bho_2828.index >= pd.Timestamp('1891-01-01')) & (df_bho_2828.index <= pd.Timestamp('1959-05-01'))
     mask_post_1959 = df_bho_2828.index >= pd.Timestamp('1959-06-01')
-    sns.lineplot(x=df_bho_2828.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_bho_2828.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_bho_2828.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
-    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
-    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
+    sns.lineplot(x=df_bho_2828.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_pre_1891]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_bho_2828.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_1891_1959]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_bho_2828.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_2828['T2828']-df_bho_tg['Tg']).values[mask_post_1959]) ], ls='--', lw=1, color='black')            
+    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='black')
+    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1891-01-01'), y=-3, s='1891-01')
     plt.text(x=pd.Timestamp('1959-06-01'), y=-3, s='1959-06')
 
@@ -1564,18 +1656,18 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly BHO $T_{2828}$ vs GloSAT $T_g$'
     
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_bho_2828_1885_2020.index, y=df_bho_2828_1885_2020['T2828'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{2828}$ BHO')
-    sns.lineplot(x=df_bho_2828_1885_2020.index, y=df_blue_hill_1885_2020['blue_hill'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT')
+    sns.lineplot(x=df_bho_2828_1885_2020.index, y=df_bho_2828_1885_2020['T2828'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{2828}$ BHO')
+    sns.lineplot(x=df_bho_2828_1885_2020.index, y=df_blue_hill_1885_2020['blue_hill'], ax=axs[0], marker='.', color='blue', alpha=1.0, label='$T_{g}$ GloSAT')
     sns.lineplot(x=df_bho_2828_1885_2020.index, y=df_bho_2828_1885_2020['T2828'] - df_blue_hill_1885_2020['blue_hill'], ax=axs[1], color='teal')
 
     mask_pre_1891 = df_bho_2828_1885_2020.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_bho_2828_1885_2020.index >= pd.Timestamp('1891-01-01')) & (df_bho_2828_1885_2020.index <= pd.Timestamp('1959-05-01'))
     mask_post_1959 = df_bho_2828_1885_2020.index >= pd.Timestamp('1959-06-01')
-    sns.lineplot(x=df_bho_2828_1885_2020.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020['blue_hill']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_bho_2828_1885_2020.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020['blue_hill']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_bho_2828_1885_2020.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020['blue_hill']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
-    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
-    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
+    sns.lineplot(x=df_bho_2828_1885_2020.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020['blue_hill']).values[mask_pre_1891]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_bho_2828_1885_2020.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020['blue_hill']).values[mask_1891_1959]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_bho_2828_1885_2020.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020['blue_hill']).values[mask_post_1959]) ], ls='--', lw=1, color='black')            
+    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='black')
+    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1891-01-01'), y=-3, s='1891-01')
     plt.text(x=pd.Timestamp('1959-06-01'), y=-3, s='1959-06')
     
@@ -1606,18 +1698,18 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly BHO $T_{2828}$ vs GloSAT $T_g$ (adjusted)'
     
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index, y=df_bho_2828_1885_2020['T2828'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{2828}$ BHO')
-    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index, y=df_blue_hill_1885_2020_tobs_adjusted['blue_hill'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT (adjusted)')
+    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index, y=df_bho_2828_1885_2020['T2828'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{2828}$ BHO')
+    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index, y=df_blue_hill_1885_2020_tobs_adjusted['blue_hill'], ax=axs[0], marker='.', color='blue', alpha=1.0, label='$T_{g}$ GloSAT (adjusted)')
     sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index, y=df_bho_2828_1885_2020['T2828'] - df_blue_hill_1885_2020_tobs_adjusted['blue_hill'], ax=axs[1], color='teal')
 
     mask_pre_1891 = df_blue_hill_1885_2020_tobs_adjusted.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_blue_hill_1885_2020_tobs_adjusted.index >= pd.Timestamp('1891-01-01')) & (df_blue_hill_1885_2020_tobs_adjusted.index <= pd.Timestamp('1959-05-01'))
     mask_post_1959 = df_blue_hill_1885_2020_tobs_adjusted.index >= pd.Timestamp('1959-06-01')
-    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
-    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
-    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
+    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_pre_1891]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_1891_1959]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_blue_hill_1885_2020_tobs_adjusted.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_2828_1885_2020['T2828']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_post_1959]) ], ls='--', lw=1, color='black')            
+    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='black')
+    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1891-01-01'), y=-3, s='1891-01')
     plt.text(x=pd.Timestamp('1959-06-01'), y=-3, s='1959-06')
             
@@ -1648,18 +1740,18 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly BHO $T_{g}$ vs GloSAT $T_g$'
     
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_bho_tg_1885_2020['Tg'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ BHO')
-    sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_blue_hill_1885_2020['blue_hill'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT')
+    sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_bho_tg_1885_2020['Tg'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ BHO')
+    sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_blue_hill_1885_2020['blue_hill'], ax=axs[0], marker='.', color='blue', alpha=1.0, label='$T_{g}$ GloSAT')
     sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_bho_tg_1885_2020['Tg'] - df_blue_hill_1885_2020['blue_hill'], ax=axs[1], color='teal')
 
     mask_pre_1891 = df_bho_tg_1885_2020.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_bho_tg_1885_2020.index >= pd.Timestamp('1891-01-01')) & (df_bho_tg_1885_2020.index <= pd.Timestamp('1959-05-01'))
     mask_post_1959 = df_bho_tg_1885_2020.index >= pd.Timestamp('1959-06-01')
-    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020['blue_hill']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020['blue_hill']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020['blue_hill']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
-    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
-    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
+    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020['blue_hill']).values[mask_pre_1891]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020['blue_hill']).values[mask_1891_1959]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020['blue_hill']).values[mask_post_1959]) ], ls='--', lw=1, color='black')            
+    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='black')
+    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1891-01-01'), y=-3, s='1891-01')
     plt.text(x=pd.Timestamp('1959-06-01'), y=-3, s='1959-06')
     
@@ -1690,18 +1782,18 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly BHO $T_{g}$ vs GloSAT $T_g$ (adjusted)'
     
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_bho_tg_1885_2020['Tg'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ BHO')
-    sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_blue_hill_1885_2020_tobs_adjusted['blue_hill'].values, ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT (adjusted)')
+    sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_bho_tg_1885_2020['Tg'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ BHO')
+    sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_blue_hill_1885_2020_tobs_adjusted['blue_hill'].values, ax=axs[0], marker='.', color='blue', alpha=1.0, label='$T_{g}$ GloSAT (adjusted)')
     sns.lineplot(x=df_bho_tg_1885_2020.index, y=df_bho_tg_1885_2020['Tg'] - df_blue_hill_1885_2020_tobs_adjusted['blue_hill'].values, ax=axs[1], color='teal')
 
     mask_pre_1891 = df_bho_tg_1885_2020.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_bho_tg_1885_2020.index >= pd.Timestamp('1891-01-01')) & (df_bho_tg_1885_2020.index <= pd.Timestamp('1959-05-01'))
     mask_post_1959 = df_bho_tg_1885_2020.index >= pd.Timestamp('1959-06-01')
-    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_pre_1891]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_1891_1959]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_post_1959]) ], ls='--', lw=1, color='k')            
-    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k')
-    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k')
+    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_pre_1891], y=mask_pre_1891.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_pre_1891]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_1891_1959], y=mask_1891_1959.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_1891_1959]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_bho_tg_1885_2020.index[mask_post_1959], y=mask_post_1959.sum()*[ np.nanmean((df_bho_tg_1885_2020['Tg']-df_blue_hill_1885_2020_tobs_adjusted['blue_hill']).values[mask_post_1959]) ], ls='--', lw=1, color='black')            
+    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='black')
+    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1891-01-01'), y=-3, s='1891-01')
     plt.text(x=pd.Timestamp('1959-06-01'), y=-3, s='1959-06')
 
@@ -1732,16 +1824,16 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GHCNM-v4 QCU'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_ghcnmv4_qcu_1811_1959.index, df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu'], marker='.', color='b', alpha=1.0, label='$T_{g}$ GHCNM-v4 QCU')
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    axs[0].plot(df_ghcnmv4_qcu_1811_1959.index, df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu'], marker='.', color='blue', alpha=1.0, label='$T_{g}$ GHCNM-v4 QCU')
     axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu'], color='teal')
 
     mask_pre_1893 = df_blue_hill_1811_1959_tobs_adjusted.index < pd.Timestamp('1893-01-01')
     mask_1893_1959 = (df_blue_hill_1811_1959_tobs_adjusted.index >= pd.Timestamp('1893-01-01')) & (df_blue_hill_1811_1959_tobs_adjusted.index <= pd.Timestamp('1959-05-01'))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index[mask_pre_1893], y=mask_pre_1893.sum()*[ np.nanmean((df_blue_hill_1811_1959_tobs_adjusted['blue_hill']-df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu']).values[mask_pre_1893]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index[mask_1893_1959], y=mask_1893_1959.sum()*[ np.nanmean((df_blue_hill_1811_1959_tobs_adjusted['blue_hill']-df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu']).values[mask_1893_1959]) ], ls='--', lw=1, color='k')            
-    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
-    plt.axvline(x=pd.Timestamp('1893-01-01'), ls='--', lw=1, color='k')
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index[mask_pre_1893], y=mask_pre_1893.sum()*[ np.nanmean((df_blue_hill_1811_1959_tobs_adjusted['blue_hill']-df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu']).values[mask_pre_1893]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index[mask_1893_1959], y=mask_1893_1959.sum()*[ np.nanmean((df_blue_hill_1811_1959_tobs_adjusted['blue_hill']-df_ghcnmv4_qcu_1811_1959['df_ghcnmv4_qcu']).values[mask_1893_1959]) ], ls='--', lw=1, color='black')            
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='black')
+    plt.axvline(x=pd.Timestamp('1893-01-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1885-01-01'), y=-3, s='1885-01')
     plt.text(x=pd.Timestamp('1893-01-01'), y=-3, s='1893-01')
 
@@ -1772,16 +1864,16 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GHCNM-v4 QCF'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_ghcnmv4_qcf_1811_1959.index, df_ghcnmv4_qcf_1811_1959['df_ghcnmv4_qcf'], marker='.', color='b', alpha=1.0, label='$T_{g}$ GHCNM-v4 QCF')
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    axs[0].plot(df_ghcnmv4_qcf_1811_1959.index, df_ghcnmv4_qcf_1811_1959['df_ghcnmv4_qcf'], marker='.', color='blue', alpha=1.0, label='$T_{g}$ GHCNM-v4 QCF')
     axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_ghcnmv4_qcf_1811_1959['df_ghcnmv4_qcf'], color='teal')
 
     mask_pre_1893 = df_blue_hill_1811_1959_tobs_adjusted.index < pd.Timestamp('1893-01-01')
     mask_1893_1959 = (df_blue_hill_1811_1959_tobs_adjusted.index >= pd.Timestamp('1893-01-01')) & (df_blue_hill_1811_1959_tobs_adjusted.index <= pd.Timestamp('1959-05-01'))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index[mask_pre_1893], y=mask_pre_1893.sum()*[ np.nanmean((df_blue_hill_1811_1959_tobs_adjusted['blue_hill']-df_ghcnmv4_qcf_1811_1959['df_ghcnmv4_qcf']).values[mask_pre_1893]) ], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index[mask_1893_1959], y=mask_1893_1959.sum()*[ np.nanmean((df_blue_hill_1811_1959_tobs_adjusted['blue_hill']-df_ghcnmv4_qcf_1811_1959['df_ghcnmv4_qcf']).values[mask_1893_1959]) ], ls='--', lw=1, color='k')            
-    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
-    plt.axvline(x=pd.Timestamp('1893-01-01'), ls='--', lw=1, color='k')
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index[mask_pre_1893], y=mask_pre_1893.sum()*[ np.nanmean((df_blue_hill_1811_1959_tobs_adjusted['blue_hill']-df_ghcnmv4_qcf_1811_1959['df_ghcnmv4_qcf']).values[mask_pre_1893]) ], ls='--', lw=1, color='black')            
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index[mask_1893_1959], y=mask_1893_1959.sum()*[ np.nanmean((df_blue_hill_1811_1959_tobs_adjusted['blue_hill']-df_ghcnmv4_qcf_1811_1959['df_ghcnmv4_qcf']).values[mask_1893_1959]) ], ls='--', lw=1, color='black')            
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='black')
+    plt.axvline(x=pd.Timestamp('1893-01-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1885-01-01'), y=-3, s='1885-01')
     plt.text(x=pd.Timestamp('1893-01-01'), y=-3, s='1893-01')
 
@@ -1812,14 +1904,14 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GloSAT New Haven'
     
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    sns.lineplot(x=df_new_haven_1811_1959.index, y=df_new_haven_1811_1959['new_haven'], ax=axs[0], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT New Haven')
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    sns.lineplot(x=df_new_haven_1811_1959.index, y=df_new_haven_1811_1959['new_haven'], ax=axs[0], marker='.', color='blue', alpha=1.0, label='$T_{g}$ GloSAT New Haven')
     sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_new_haven_1811_1959['new_haven'], ax=axs[1], color='teal')    
 
     mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_new_haven_1811_1959['new_haven'] )
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -1849,14 +1941,14 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GloSAT Boston City WSO'
         
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_boston_city_wso_1811_1959.index, df_boston_city_wso_1811_1959['boston_city_wso'], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT Boston City WSO')
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    axs[0].plot(df_boston_city_wso_1811_1959.index, df_boston_city_wso_1811_1959['boston_city_wso'], marker='.', color='blue', alpha=1.0, label='$T_{g}$ GloSAT Boston City WSO')
     axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_boston_city_wso_1811_1959['boston_city_wso'], color='teal')
 
     mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_boston_city_wso_1811_1959['boston_city_wso'] )
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -1886,14 +1978,14 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GloSAT Providence WSO'
     
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_providence_wso_1811_1959.index, df_providence_wso_1811_1959['providence_wso'], marker='.', color='b', alpha=1.0, label='$T_{g}$ GloSAT Providence WSO')
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    axs[0].plot(df_providence_wso_1811_1959.index, df_providence_wso_1811_1959['providence_wso'], marker='.', color='blue', alpha=1.0, label='$T_{g}$ GloSAT Providence WSO')
     axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_providence_wso_1811_1959['providence_wso'], color='teal')
 
     mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_providence_wso_1811_1959['providence_wso'] )
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -1923,14 +2015,14 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs 20CRv3 BHO T(2m)'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_20CRv3_bho_1811_1959.index, df_20CRv3_bho_1811_1959['T(2m)'], marker='.', color='b', alpha=1.0, label='$T_{2m}$ 20CRv3 BHO')
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    axs[0].plot(df_20CRv3_bho_1811_1959.index, df_20CRv3_bho_1811_1959['T(2m)'], marker='.', color='blue', alpha=1.0, label='$T_{2m}$ 20CRv3 BHO')
     axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_20CRv3_bho_1811_1959['T(2m)'], color='teal')
 
     mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_20CRv3_bho_1811_1959['T(2m)'] )
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -1960,14 +2052,14 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs 20CRv3 BHO T(1000hPa)'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_20CRv3_bho_1811_1959.index, df_20CRv3_bho_1811_1959['T(1000hPa)'], marker='.', color='b', alpha=1.0, label='$T_{1000hPa}$ 20CRv3 BHO')
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    axs[0].plot(df_20CRv3_bho_1811_1959.index, df_20CRv3_bho_1811_1959['T(1000hPa)'], marker='.', color='blue', alpha=1.0, label='$T_{1000hPa}$ 20CRv3 BHO')
     axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_20CRv3_bho_1811_1959['T(1000hPa)'], color='teal')
 
     mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_20CRv3_bho_1811_1959['T(1000hPa)'] )
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -1997,14 +2089,14 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs 20CRv3 New Haven T(2m)'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_20CRv3_new_haven_1811_1959.index, df_20CRv3_new_haven_1811_1959['T(2m)'], marker='.', color='b', alpha=1.0, label='$T_{2m}$ 20CRv3 New Haven')
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    axs[0].plot(df_20CRv3_new_haven_1811_1959.index, df_20CRv3_new_haven_1811_1959['T(2m)'], marker='.', color='blue', alpha=1.0, label='$T_{2m}$ 20CRv3 New Haven')
     axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_20CRv3_new_haven_1811_1959['T(2m)'], color='teal')
 
     mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_20CRv3_new_haven_1811_1959['T(2m)'] )
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -2034,14 +2126,14 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs 20CRv3 New Haven T(1000hPa)'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_20CRv3_new_haven_1811_1959.index, df_20CRv3_new_haven_1811_1959['T(1000hPa)'], marker='.', color='b', alpha=1.0, label='$T_{1000hPa}$ 20CRv3 New Haven')
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=df_blue_hill_1811_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    axs[0].plot(df_20CRv3_new_haven_1811_1959.index, df_20CRv3_new_haven_1811_1959['T(1000hPa)'], marker='.', color='blue', alpha=1.0, label='$T_{1000hPa}$ 20CRv3 New Haven')
     axs[1].plot(df_blue_hill_1811_1959_tobs_adjusted.index, df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_20CRv3_new_haven_1811_1959['T(1000hPa)'], color='teal')
 
     mean_difference = np.nanmean( df_blue_hill_1811_1959_tobs_adjusted['blue_hill'] - df_20CRv3_new_haven_1811_1959['T(1000hPa)'] )
-    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    sns.lineplot(x=df_blue_hill_1811_1959_tobs_adjusted.index, y=len(df_blue_hill_1811_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -2068,20 +2160,20 @@ if plot_differences == True:
     print('plotting BHO: GloSAT Tg (adjusted) vs HadCRUT5-analysis BHO T(2m) ...')
 
     df_blue_hill_1850_1959_tobs_adjusted = df_blue_hill_1811_1959_tobs_adjusted[ df_blue_hill_1811_1959_tobs_adjusted.index>=pd.to_datetime('1850-01-01') ]
-    df_hadcrut5_bho_1850_1959 = centigrade_to_fahrenheit( df_hadcrut5_bho[(df_hadcrut5_bho.index>=pd.to_datetime('1811-01-01')) & (df_hadcrut5_bho.index<=pd.to_datetime('1959-06-01'))] )
+    df_hadcrut5_bho_1850_1959 = df_hadcrut5_bho[(df_hadcrut5_bho.index>=pd.to_datetime('1811-01-01')) & (df_hadcrut5_bho.index<=pd.to_datetime('1959-06-01'))] 
     
     figstr = 'bho-glosat-tg-adjusted-vs-hadcrut5-analysis-bho.png'
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs HadCRUT5-analysis BHO T(2m)'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1850_1959_tobs_adjusted.index, y=df_blue_hill_1850_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_hadcrut5_bho_1850_1959.index, df_hadcrut5_bho_1850_1959['T(2m)'], marker='.', color='b', alpha=1.0, label='$T_{2m}$ HadCRUT5-analysis BHO')
-    axs[1].plot(df_blue_hill_1850_1959_tobs_adjusted.index, df_blue_hill_1850_1959_tobs_adjusted['blue_hill'].values - df_hadcrut5_bho_1850_1959['T(2m)'].values, color='teal')
+    sns.lineplot(x=df_blue_hill_1850_1959_tobs_adjusted.index, y=df_blue_hill_1850_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    axs[0].plot(df_hadcrut5_bho_1850_1959.index, df_hadcrut5_bho_1850_1959['df_hadcrut5_bho'], marker='.', color='blue', alpha=1.0, label='$T_{2m}$ HadCRUT5-analysis BHO')
+    axs[1].plot(df_blue_hill_1850_1959_tobs_adjusted.index, df_blue_hill_1850_1959_tobs_adjusted['blue_hill'].values - df_hadcrut5_bho_1850_1959['df_hadcrut5_bho'].values, color='teal')
 
-    mean_difference = np.nanmean( df_blue_hill_1850_1959_tobs_adjusted['blue_hill'].values - df_hadcrut5_bho_1850_1959['T(2m)'].values )
-    sns.lineplot(x=df_blue_hill_1850_1959_tobs_adjusted.index, y=len(df_blue_hill_1850_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    mean_difference = np.nanmean( df_blue_hill_1850_1959_tobs_adjusted['blue_hill'].values - df_hadcrut5_bho_1850_1959['df_hadcrut5_bho'].values )
+    sns.lineplot(x=df_blue_hill_1850_1959_tobs_adjusted.index, y=len(df_blue_hill_1850_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -2108,20 +2200,20 @@ if plot_differences == True:
     print('plotting BHO: GloSAT Tg (adjusted) vs 20CRv3 New Haven ...')
     
     df_blue_hill_1850_1959_tobs_adjusted = df_blue_hill_1811_1959_tobs_adjusted[ df_blue_hill_1811_1959_tobs_adjusted.index>=pd.to_datetime('1850-01-01') ]
-    df_hadcrut5_new_haven_1850_1959 = centigrade_to_fahrenheit( df_hadcrut5_new_haven[(df_hadcrut5_new_haven.index>=pd.to_datetime('1811-01-01')) & (df_hadcrut5_new_haven.index<=pd.to_datetime('1959-06-01'))] )
+    df_hadcrut5_new_haven_1850_1959 = df_hadcrut5_new_haven[(df_hadcrut5_new_haven.index>=pd.to_datetime('1811-01-01')) & (df_hadcrut5_new_haven.index<=pd.to_datetime('1959-06-01'))]
     
     figstr = 'bho-glosat-tg-adjusted-vs-hadcrut5-analysis-new-haven.png'
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs HadCRUT5-analysis New Haven T(2m)'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1850_1959_tobs_adjusted.index, y=df_blue_hill_1850_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
-    axs[0].plot(df_hadcrut5_new_haven_1850_1959.index, df_hadcrut5_new_haven_1850_1959['T(2m)'], marker='.', color='b', alpha=1.0, label='$T_{2m}$ HadCRUT5-analysis New Haven')
-    axs[1].plot(df_blue_hill_1850_1959_tobs_adjusted.index, df_blue_hill_1850_1959_tobs_adjusted['blue_hill'].values - df_hadcrut5_new_haven_1850_1959['T(2m)'].values, color='teal')
+    sns.lineplot(x=df_blue_hill_1850_1959_tobs_adjusted.index, y=df_blue_hill_1850_1959_tobs_adjusted['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO (adjusted)')
+    axs[0].plot(df_hadcrut5_new_haven_1850_1959.index, df_hadcrut5_new_haven_1850_1959['df_hadcrut5_new_haven'], marker='.', color='blue', alpha=1.0, label='$T_{2m}$ HadCRUT5-analysis New Haven')
+    axs[1].plot(df_blue_hill_1850_1959_tobs_adjusted.index, df_blue_hill_1850_1959_tobs_adjusted['blue_hill'].values - df_hadcrut5_new_haven_1850_1959['df_hadcrut5_new_haven'].values, color='teal')
 
-    mean_difference = np.nanmean( df_blue_hill_1850_1959_tobs_adjusted['blue_hill'].values - df_hadcrut5_new_haven_1850_1959['T(2m)'].values )
-    sns.lineplot(x=df_blue_hill_1850_1959_tobs_adjusted.index, y=len(df_blue_hill_1850_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    mean_difference = np.nanmean( df_blue_hill_1850_1959_tobs_adjusted['blue_hill'].values - df_hadcrut5_new_haven_1850_1959['df_hadcrut5_new_haven'].values )
+    sns.lineplot(x=df_blue_hill_1850_1959_tobs_adjusted.index, y=len(df_blue_hill_1850_1959_tobs_adjusted)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='k')
+    plt.axvline(x=pd.Timestamp('1885-01-01'), ls='--', lw=1, color='black')
     plt.text(x=pd.Timestamp('1885-01-01'), y=-15, s='1885-01')
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -2151,12 +2243,12 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GHCND $T_{g}$ (from daily) USW00014739 (Boston)'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO')
-    axs[0].plot(df_USW00014739_1959_2020.index, df_USW00014739_1959_2020['Tgm'], marker='.', color='b', alpha=1.0, label='$T_{g}$ (from daily) GHCND Boston')
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO')
+    axs[0].plot(df_USW00014739_1959_2020.index, df_USW00014739_1959_2020['Tgm'], marker='.', color='blue', alpha=1.0, label='$T_{g}$ (from daily) GHCND Boston')
     axs[1].plot(df_blue_hill_1959_2020.index, df_blue_hill_1959_2020['blue_hill'] - df_USW00014739_1959_2020['Tgm'], color='teal')
     
     mean_difference = np.nanmean( df_blue_hill_1959_2020['blue_hill'] - df_USW00014739_1959_2020['Tgm'] )
-    sns.lineplot(x=df_blue_hill_1959_2020.index, y=len(df_blue_hill_1959_2020)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=len(df_blue_hill_1959_2020)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -2184,12 +2276,12 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GHCND $T_{g}$ (from daily) USW00014739 (Providence)'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO')
-    axs[0].plot(df_USW00014765_1959_2020.index, df_USW00014765_1959_2020['Tgm'], marker='.', color='b', alpha=1.0, label='$T_{g}$ (from daily) GHCND Providence')
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO')
+    axs[0].plot(df_USW00014765_1959_2020.index, df_USW00014765_1959_2020['Tgm'], marker='.', color='blue', alpha=1.0, label='$T_{g}$ (from daily) GHCND Providence')
     axs[1].plot(df_blue_hill_1959_2020.index, df_blue_hill_1959_2020['blue_hill'] - df_USW00014765_1959_2020['Tgm'], color='teal')
 
     mean_difference = np.nanmean( df_blue_hill_1959_2020['blue_hill'] - df_USW00014765_1959_2020['Tgm'] )
-    sns.lineplot(x=df_blue_hill_1959_2020.index, y=len(df_blue_hill_1959_2020)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=len(df_blue_hill_1959_2020)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
 
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -2217,12 +2309,12 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GHCND $T_{g}$ (from daily) USW00014758 (New Haven Tweed Airport)'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO')
-    axs[0].plot(df_USW00014758_1959_2020.index, df_USW00014758_1959_2020['Tgm'], marker='.', color='b', alpha=1.0, label='$T_{g}$ (from daily) GHCND New Haven Tweed Airport')
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO')
+    axs[0].plot(df_USW00014758_1959_2020.index, df_USW00014758_1959_2020['Tgm'], marker='.', color='blue', alpha=1.0, label='$T_{g}$ (from daily) GHCND New Haven Tweed Airport')
     axs[1].plot(df_blue_hill_1959_2020.index, df_blue_hill_1959_2020['blue_hill'] - df_USW00014758_1959_2020['Tgm'], color='teal')
 
     mean_difference = np.nanmean( df_blue_hill_1959_2020['blue_hill'] - df_USW00014758_1959_2020['Tgm'] )
-    sns.lineplot(x=df_blue_hill_1959_2020.index, y=len(df_blue_hill_1959_2020)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=len(df_blue_hill_1959_2020)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -2250,12 +2342,12 @@ if plot_differences == True:
     titlestr = 'Blue Hill Observatory: monthly GloSAT $T_g$ (adjusted) vs GHCND $T_{g}$ (from daily) USC00065910 (Norwich)'
 
     fig, axs = plt.subplots(2,1, figsize=(15,10))
-    sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='r', alpha=1.0, label='$T_{g}$ GloSAT BHO')
-    axs[0].plot(df_USC00065910_1959_2020.index, df_USC00065910_1959_2020['Tgm'], marker='.', color='b', alpha=1.0, label='$T_{g}$ (from daily) GHCND Norwich')
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=df_blue_hill_1959_2020['blue_hill'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT BHO')
+    axs[0].plot(df_USC00065910_1959_2020.index, df_USC00065910_1959_2020['Tgm'], marker='.', color='blue', alpha=1.0, label='$T_{g}$ (from daily) GHCND Norwich')
     axs[1].plot(df_blue_hill_1959_2020.index, df_blue_hill_1959_2020['blue_hill'] - df_USC00065910_1959_2020['Tgm'], color='teal')
 
     mean_difference = np.nanmean( df_blue_hill_1959_2020['blue_hill'] - df_USC00065910_1959_2020['Tgm'] )
-    sns.lineplot(x=df_blue_hill_1959_2020.index, y=len(df_blue_hill_1959_2020)*[ mean_difference ], ls='--', lw=1, color='k', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    sns.lineplot(x=df_blue_hill_1959_2020.index, y=len(df_blue_hill_1959_2020)*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
     axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
     
     axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
@@ -2350,8 +2442,8 @@ if plot_kde == True:
     
     fig, ax = plt.subplots(figsize=(15,10))
     kwargs = {'levels': np.arange(0, 0.15, 0.01)}
-    sns.kdeplot(df_bho_2828['T2828'], color='r', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{2828}$')
-    sns.kdeplot(df_bho_tg['Tg'], color='b', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$')
+    sns.kdeplot(df_bho_2828['T2828'], color='red', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{2828}$')
+    sns.kdeplot(df_bho_tg['Tg'], color='blue', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$')
     if use_fahrenheit == True:
         ax.set_xlim(0,90)
         ax.set_ylim(0,0.03)
@@ -2376,8 +2468,8 @@ if plot_kde == True:
     
     fig, ax = plt.subplots(figsize=(15,10))
     kwargs = {'levels': np.arange(0, 0.15, 0.01)}
-    sns.kdeplot(df_bho_monthly['Tgm'], color='r', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$ (from daily)')
-    sns.kdeplot(df_bho_monthly['Tg'], color='b', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$ monthly')
+    sns.kdeplot(df_bho_monthly['Tgm'], color='red', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$ (from daily)')
+    sns.kdeplot(df_bho_monthly['Tg'], color='blue', shade=True, alpha=0.2, legend=True, **kwargs, label=r'$T_{g}$ monthly')
     if use_fahrenheit == True:
         ax.set_xlim(0,90)
         ax.set_ylim(0,0.03)
@@ -2406,9 +2498,9 @@ if plot_ghcn == True:
     
     #fig,ax = plt.subplots(figsize=(15,10))
     #g = sns.FacetGrid(df_neighbouring_stations, col='STATION', col_wrap=4)
-    #g.map(sns.kdeplot, 'TMIN', color='b', shade=True, alpha=0.5, legend=True, label=r'$T_{n}$')
+    #g.map(sns.kdeplot, 'TMIN', color='blue', shade=True, alpha=0.5, legend=True, label=r'$T_{n}$')
     #g.map(sns.kdeplot, 'TAVG', color='purple', shade=True, alpha=0.5, legend=True, label=r'$T_{g}$')
-    #g.map(sns.kdeplot, 'TMAX', color='r', shade=True, alpha=0.5, legend=True, label=r'$T_{x}$')
+    #g.map(sns.kdeplot, 'TMAX', color='red', shade=True, alpha=0.5, legend=True, label=r'$T_{x}$')
     #axs = g.axes.flatten()
     #for ax in axs:       
     #    ax.set_xlim(-30,40)
@@ -2441,9 +2533,9 @@ if plot_ghcn == True:
         c = i%ncols
         if (i > 0) & (c == 0):
             r += 1     
-        g = sns.kdeplot(ymin, ax=axs[r,c], color='b', shade=True, alpha=0.5, legend=True, label=r'$T_{n}$')
+        g = sns.kdeplot(ymin, ax=axs[r,c], color='blue', shade=True, alpha=0.5, legend=True, label=r'$T_{n}$')
         sns.kdeplot(yavg, ax=axs[r,c], color='purple', shade=True, alpha=0.5, legend=True, label=r'$T_{g}$')
-        sns.kdeplot(ymax, ax=axs[r,c], color='r', shade=True, alpha=0.5, legend=True, label=r'$T_{x}$')   
+        sns.kdeplot(ymax, ax=axs[r,c], color='red', shade=True, alpha=0.5, legend=True, label=r'$T_{x}$')   
         if use_fahrenheit == True:
             g.axes.set_xlim(-20,110)
             g.axes.set_ylim(0,0.03)
@@ -2504,9 +2596,9 @@ if plot_ghcn == True:
         yavg_yearly = df_monthly_xr['TAVG'].resample(datetime='MS').mean().to_dataset() 
         ymax_yearly = df_monthly_xr['TMAX'].resample(datetime='MS').mean().to_dataset() 
         t = pd.date_range(start=str(df_monthly.index[0].year), periods=len(ymin_yearly.TMIN.values), freq='MS')
-        g = sns.lineplot(x=t, y=ymin_yearly.TMIN.values, ax=axs[r,c], marker='.', color='b', alpha=0.5, label='$T_{n}$')
+        g = sns.lineplot(x=t, y=ymin_yearly.TMIN.values, ax=axs[r,c], marker='.', color='blue', alpha=0.5, label='$T_{n}$')
         sns.lineplot(x=t, y=yavg_yearly.TAVG.values, ax=axs[r,c], marker='.', color='purple', alpha=0.5, label='$T_{g}$')
-        sns.lineplot(x=t, y=ymax_yearly.TMAX.values, ax=axs[r,c], marker='.', color='r', alpha=0.5, label='$T_{x}$')
+        sns.lineplot(x=t, y=ymax_yearly.TMAX.values, ax=axs[r,c], marker='.', color='red', alpha=0.5, label='$T_{x}$')
         if use_fahrenheit == True:
             g.axes.set_ylim(0,90)
         else:
@@ -2564,9 +2656,9 @@ if plot_ghcn == True:
         yavg_yearly = df_monthly_xr['TAVG'].resample(datetime='2AS').mean().to_dataset() 
         ymax_yearly = df_monthly_xr['TMAX'].resample(datetime='2AS').mean().to_dataset() 
         t = pd.date_range(start=str(df_monthly.index[0].year), periods=len(ymin_yearly.TMIN.values), freq='2AS')
-        g = sns.lineplot(x=t, y=ymin_yearly.TMIN.values, ax=axs[r,c], marker='.', color='b', alpha=0.5, label='$T_{n}$')
+        g = sns.lineplot(x=t, y=ymin_yearly.TMIN.values, ax=axs[r,c], marker='.', color='blue', alpha=0.5, label='$T_{n}$')
         sns.lineplot(x=t, y=yavg_yearly.TAVG.values, ax=axs[r,c], marker='.', color='purple', alpha=0.5, label='$T_{g}$')
-        sns.lineplot(x=t, y=ymax_yearly.TMAX.values, ax=axs[r,c], marker='.', color='r', alpha=0.5, label='$T_{x}$')
+        sns.lineplot(x=t, y=ymax_yearly.TMAX.values, ax=axs[r,c], marker='.', color='red', alpha=0.5, label='$T_{x}$')
         if use_fahrenheit == True:
             g.axes.set_ylim(0,90)
         else:
@@ -2760,61 +2852,61 @@ if plot_bho_all_sources == True:
     
     # PLOT: 2yr MA smoothed reanalysis
     
-    sns.lineplot(x=df_20CRv3_new_haven.index, y=(pd.Series(df_20CRv3_new_haven['T(2m)']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='--', lw=1, color='k', alpha=1, zorder=5, legend=True, label=r'$T_{g}$ 2yr MA: 20CRv3 (2m) at New Haven')
+    plt.plot(df_20CRv3_new_haven.index, (pd.Series(df_20CRv3_new_haven['T(2m)']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='--', lw=1, color='black', alpha=1, zorder=5, label=r'$T_{g}$ 2yr MA: 20CRv3 (2m) at New Haven')
     
     # PLOT: 2yr MA smoothed timeseries
     
-    sns.lineplot(x=df_new_haven.index, y=(pd.Series(df_new_haven['new_haven']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, color='lime', alpha=1, zorder=5, legend=True, label=r'$T_{g}$ 2yr MA: New Haven (reference)')
-    sns.lineplot(x=df_bho_2828.index, y=(pd.Series(df_bho_2828['T2828']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=5, color='r', alpha=1, zorder=5, legend=True, label=r'$T_{2828}$ 2yr MA: BHO')
-    sns.lineplot(x=df_bho_2828.index, y=(pd.Series(df_bho_tg['Tg']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=5, color='b', alpha=1, zorder=5, legend=True, label=r'$T_{g}$ 2yr MA: BHO')
-    sns.lineplot(x=df_blue_hill.index, y=(pd.Series(df_blue_hill['blue_hill']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=5, color='g', alpha=1, zorder=5, legend=True, label=r'$T_{g}$ 2yr MA: GloSAT')
-    plt.plot(df_ghcnmv4_qcf.index, (pd.Series(df_ghcnmv4_qcf['df_ghcnmv4_qcf']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=2, color='k', zorder=10, label=r'$T_{g}$ 2yr MA: GHCNMv4 (QCF)')
-    plt.fill_between(df_ghcnmv4_qcu.index, 6, (pd.Series(df_ghcnmv4_qcu['df_ghcnmv4_qcu']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), color='k', alpha=0.1, zorder=3, label=r'$T_{g}$ 2yr MA: GHCNMv4 (QCU)')
+    plt.plot(df_new_haven.index, (pd.Series(df_new_haven['new_haven']).rolling(24,center=True).mean()), '.', color='lime', alpha=1, zorder=5, label=r'$T_{g}$ 2yr MA: New Haven (reference)')
+    plt.plot(df_bho_2828.index, (pd.Series(df_bho_2828['T2828']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=5, color='red', alpha=1, zorder=5, label=r'$T_{2828}$ 2yr MA: BHO')
+    plt.plot(df_bho_2828.index, (pd.Series(df_bho_tg['Tg']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=5, color='blue', alpha=1, zorder=5, label=r'$T_{g}$ 2yr MA: BHO')
+    plt.plot(df_blue_hill.index, (pd.Series(df_blue_hill['blue_hill']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=5, color='green', alpha=1, zorder=5, label=r'$T_{g}$ 2yr MA: GloSAT')
+    plt.plot(df_ghcnmv4_qcf.index, (pd.Series(df_ghcnmv4_qcf['df_ghcnmv4_qcf']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=2, color='black', zorder=10, label=r'$T_{g}$ 2yr MA: GHCNMv4 (QCF)')
+    plt.fill_between(df_ghcnmv4_qcu.index, 6, (pd.Series(df_ghcnmv4_qcu['df_ghcnmv4_qcu']).rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), color='black', alpha=0.1, zorder=3, label=r'$T_{g}$ 2yr MA: GHCNMv4 (QCU)')
     
     # PLOT: segment means
     
     mask_pre_1891 = df_new_haven.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_new_haven.index >= pd.Timestamp('1891-01-01')) & (df_new_haven.index < pd.Timestamp('1959-06-01'))
     mask_post_1959 = df_new_haven.index >= pd.Timestamp('1959-06-01')
-    sns.lineplot(x=df_new_haven.index[mask_pre_1891], y=mask_pre_1891.sum()*[df_new_haven['new_haven'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='lime')            
-    sns.lineplot(x=df_new_haven.index[mask_1891_1959], y=mask_1891_1959.sum()*[df_new_haven['new_haven'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='lime')            
-    sns.lineplot(x=df_new_haven.index[mask_post_1959], y=mask_post_1959.sum()*[df_new_haven['new_haven'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='lime')            
+    plt.plot(df_new_haven.index[mask_pre_1891], mask_pre_1891.sum()*[df_new_haven['new_haven'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='lime')            
+    plt.plot(df_new_haven.index[mask_1891_1959], mask_1891_1959.sum()*[df_new_haven['new_haven'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='lime')            
+    plt.plot(df_new_haven.index[mask_post_1959], mask_post_1959.sum()*[df_new_haven['new_haven'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='lime')            
     
     mask_pre_1891 = df_bho_2828.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_bho_2828.index >= pd.Timestamp('1891-01-01')) & (df_bho_2828.index < pd.Timestamp('1959-06-01'))
     mask_post_1959 = df_bho_2828.index >= pd.Timestamp('1959-06-01')
-    sns.lineplot(x=df_bho_2828.index[mask_pre_1891], y=mask_pre_1891.sum()*[df_bho_2828['T2828'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='r')            
-    sns.lineplot(x=df_bho_2828.index[mask_1891_1959], y=mask_1891_1959.sum()*[df_bho_2828['T2828'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='r')            
-    sns.lineplot(x=df_bho_2828.index[mask_post_1959], y=mask_post_1959.sum()*[df_bho_2828['T2828'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='r')            
-    sns.lineplot(x=df_bho_2828.index[mask_pre_1891], y=mask_pre_1891.sum()*[df_bho_tg['Tg'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='b')            
-    sns.lineplot(x=df_bho_2828.index[mask_1891_1959], y=mask_1891_1959.sum()*[df_bho_tg['Tg'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='b')            
-    sns.lineplot(x=df_bho_2828.index[mask_post_1959], y=mask_post_1959.sum()*[df_bho_tg['Tg'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='b')            
+    plt.plot(df_bho_2828.index[mask_pre_1891], mask_pre_1891.sum()*[df_bho_2828['T2828'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='red')            
+    plt.plot(df_bho_2828.index[mask_1891_1959], mask_1891_1959.sum()*[df_bho_2828['T2828'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='red')            
+    plt.plot(df_bho_2828.index[mask_post_1959], mask_post_1959.sum()*[df_bho_2828['T2828'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='red')            
+    plt.plot(df_bho_2828.index[mask_pre_1891], mask_pre_1891.sum()*[df_bho_tg['Tg'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='blue')            
+    plt.plot(df_bho_2828.index[mask_1891_1959], mask_1891_1959.sum()*[df_bho_tg['Tg'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='blue')            
+    plt.plot(df_bho_2828.index[mask_post_1959], mask_post_1959.sum()*[df_bho_tg['Tg'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='blue')            
     
     mask_pre_1891 = df_blue_hill.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_blue_hill.index >= pd.Timestamp('1891-01-01')) & (df_blue_hill.index < pd.Timestamp('1959-06-01'))
     mask_post_1959 = df_blue_hill.index >= pd.Timestamp('1959-06-01')
-    sns.lineplot(x=df_blue_hill.index[mask_pre_1891], y=mask_pre_1891.sum()*[df_blue_hill['blue_hill'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='g')            
-    sns.lineplot(x=df_blue_hill.index[mask_1891_1959], y=mask_1891_1959.sum()*[df_blue_hill['blue_hill'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='g')            
-    sns.lineplot(x=df_blue_hill.index[mask_post_1959], y=mask_post_1959.sum()*[df_blue_hill['blue_hill'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='g')            
+    plt.plot(df_blue_hill.index[mask_pre_1891], mask_pre_1891.sum()*[df_blue_hill['blue_hill'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='green')            
+    plt.plot(df_blue_hill.index[mask_1891_1959], mask_1891_1959.sum()*[df_blue_hill['blue_hill'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='green')            
+    plt.plot(df_blue_hill.index[mask_post_1959], mask_post_1959.sum()*[df_blue_hill['blue_hill'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='green')            
     
     mask_pre_1891 = df_ghcnmv4_qcf.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_ghcnmv4_qcf.index >= pd.Timestamp('1891-01-01')) & (df_ghcnmv4_qcf.index < pd.Timestamp('1959-06-01'))
     mask_post_1959 = df_ghcnmv4_qcf.index >= pd.Timestamp('1959-06-01')
-    sns.lineplot(x=df_ghcnmv4_qcf.index[mask_pre_1891], y=mask_pre_1891.sum()*[df_ghcnmv4_qcf['df_ghcnmv4_qcf'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_ghcnmv4_qcf.index[mask_1891_1959], y=mask_1891_1959.sum()*[df_ghcnmv4_qcf['df_ghcnmv4_qcf'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='k')            
-    sns.lineplot(x=df_ghcnmv4_qcf.index[mask_post_1959], y=mask_post_1959.sum()*[df_ghcnmv4_qcf['df_ghcnmv4_qcf'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='k')            
+    plt.plot(df_ghcnmv4_qcf.index[mask_pre_1891], mask_pre_1891.sum()*[df_ghcnmv4_qcf['df_ghcnmv4_qcf'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='black')            
+    plt.plot(df_ghcnmv4_qcf.index[mask_1891_1959], mask_1891_1959.sum()*[df_ghcnmv4_qcf['df_ghcnmv4_qcf'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='black')            
+    plt.plot(df_ghcnmv4_qcf.index[mask_post_1959], mask_post_1959.sum()*[df_ghcnmv4_qcf['df_ghcnmv4_qcf'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='black')            
     
     mask_pre_1891 = df_ghcnmv4_qcu.index < pd.Timestamp('1891-01-01')
     mask_1891_1959 = (df_ghcnmv4_qcu.index >= pd.Timestamp('1891-01-01')) & (df_ghcnmv4_qcu.index < pd.Timestamp('1959-06-01'))
     mask_post_1959 = df_ghcnmv4_qcu.index >= pd.Timestamp('1959-06-01')
-    sns.lineplot(x=df_ghcnmv4_qcu.index[mask_pre_1891], y=mask_pre_1891.sum()*[df_ghcnmv4_qcu['df_ghcnmv4_qcu'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='k', alpha=0.3)            
-    sns.lineplot(x=df_ghcnmv4_qcu.index[mask_1891_1959], y=mask_1891_1959.sum()*[df_ghcnmv4_qcu['df_ghcnmv4_qcu'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='k', alpha=0.3)            
-    sns.lineplot(x=df_ghcnmv4_qcu.index[mask_post_1959], y=mask_post_1959.sum()*[df_ghcnmv4_qcu['df_ghcnmv4_qcu'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='k', alpha=0.3)            
+    plt.plot(df_ghcnmv4_qcu.index[mask_pre_1891], mask_pre_1891.sum()*[df_ghcnmv4_qcu['df_ghcnmv4_qcu'][mask_pre_1891].dropna().mean()], ls='--', lw=1, color='black', alpha=0.3)            
+    plt.plot(df_ghcnmv4_qcu.index[mask_1891_1959], mask_1891_1959.sum()*[df_ghcnmv4_qcu['df_ghcnmv4_qcu'][mask_1891_1959].dropna().mean()], ls='--', lw=1, color='black', alpha=0.3)            
+    plt.plot(df_ghcnmv4_qcu.index[mask_post_1959], mask_post_1959.sum()*[df_ghcnmv4_qcu['df_ghcnmv4_qcu'][mask_post_1959].dropna().mean()], ls='--', lw=1, color='black', alpha=0.3)            
     
     # PLOT: breakpoints
     
-    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='k', zorder=20)
-    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='k', zorder=20)
+    plt.axvline(x=pd.Timestamp('1891-01-01'), ls='--', lw=1, color='black', zorder=20)
+    plt.axvline(x=pd.Timestamp('1959-06-01'), ls='--', lw=1, color='black', zorder=20)
     
     if use_fahrenheit == True:
         ax.set_ylim(40,60)
@@ -2833,44 +2925,23 @@ if plot_bho_all_sources == True:
     
 if plot_glosat_adjusted_vs_neighbours == True:
         
-    print('plotting GloSAT adjusted timeseries vs neighbours ... ')
+    print('plotting BHO: Tobs-adjusted GloSAT versus neighbours ... ')
 
     # PLOT: BHO Tobs-adjusted GloSAT timeseries versus neighbours
-    
-    print('plotting BHO: Tobs-adjusted GloSAT versus neighbours ... ')
-    
-    normal_blue_hill = np.nanmean( df_blue_hill_1811_2020_tobs_adjusted[     
-        (df_blue_hill_1811_2020_tobs_adjusted.index>=pd.to_datetime('1961-01-01')) & 
-        (df_blue_hill_1811_2020_tobs_adjusted.index<=pd.to_datetime('1990-12-01')) ]['blue_hill'])
-    
-    normal_boston_city_wso = np.nanmean( df_boston_city_wso[     
-        (df_boston_city_wso.index>=pd.to_datetime('1961-01-01')) & 
-        (df_boston_city_wso.index<=pd.to_datetime('1990-12-01')) ]['boston_city_wso'])
-    
-    normal_new_haven = np.nanmean( df_new_haven[     
-        (df_new_haven.index>=pd.to_datetime('1961-01-01')) & 
-        (df_new_haven.index<=pd.to_datetime('1990-12-01')) ]['new_haven'])
-    
-    normal_providence_wso = np.nanmean( df_providence_wso[     
-        (df_providence_wso.index>=pd.to_datetime('1961-01-01')) & 
-        (df_providence_wso.index<=pd.to_datetime('1990-12-01')) ]['providence_wso'])
-        
+                
     sequential_colors = sns.color_palette(color_palette, 3)
     sns.set_palette(sequential_colors)
     
     figstr = 'bho-glosat-tobs-adjusted-versus-glosat-unadjusted-neighbours.png'
     titlestr = 'BHO: $T_{obs}$-adjusted GloSAT versus GloSAT unadjusted neighbours'
     
-    fig, ax = plt.subplots(figsize=(15,10))
-    
-    # PLOT: 2yr MA smoothed timeseries
-    
+    fig, ax = plt.subplots(figsize=(15,10))       
     plt.plot(df_boston_city_wso.index, pd.Series(df_boston_city_wso['boston_city_wso']).rolling(24,center=True).mean(), 'o', alpha=0.2, zorder=5, label=r'$T_{g}$ 2yr MA: Boston City WSO (reference)')
     plt.plot(df_new_haven.index, pd.Series(df_new_haven['new_haven']).rolling(24,center=True).mean(), 'o', alpha=0.2, zorder=5, label=r'$T_{g}$ 2yr MA: New Haven (reference)')
     plt.plot(df_providence_wso.index, pd.Series(df_providence_wso['providence_wso']).rolling(24,center=True).mean(), 'o', alpha=0.2, zorder=5, label=r'$T_{g}$ 2yr MA: Providence WSO (reference)') 
-    sns.lineplot(x=df_blue_hill_1811_2020_tobs_adjusted.dropna().index, y=(pd.Series(df_blue_hill_1811_2020_tobs_adjusted['blue_hill'].values).dropna().rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, color='r', alpha=1, zorder=20, label='$T_{g}$: 2yr MA: Tobs-adjusted GloSAT: 1811-2020')
+    sns.lineplot(x=df_blue_hill_1811_2020_tobs_adjusted.dropna().index, y=(pd.Series(df_blue_hill_1811_2020_tobs_adjusted['blue_hill'].values).dropna().rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean(), ls='-', lw=3, color='red', alpha=1, zorder=20, label='$T_{g}$: 2yr MA: Tobs-adjusted GloSAT: 1811-2020')
     sns.lineplot(x=df_blue_hill_1811_2020_tobs_adjusted.dropna().index, y=(pd.Series(df_blue_hill_1811_2020_tobs_adjusted['blue_hill'].values).dropna().rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean() + (normal_boston_city_wso-normal_blue_hill), ls='-', lw=3, color='lime', alpha=1, zorder=20, label='$T_{g}$: 2yr MA: Tobs-adjusted GloSAT: 1811-2020 (shifted to Boston City WSO normal)')
-    sns.lineplot(x=df_blue_hill_1811_2020_tobs_adjusted.dropna().index, y=(pd.Series(df_blue_hill_1811_2020_tobs_adjusted['blue_hill'].values).dropna().rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean() + (normal_new_haven-normal_blue_hill), ls='-', lw=3, color='g', alpha=1, zorder=20, label='$T_{g}$: 2yr MA: Tobs-adjusted GloSAT: 1811-2020 (shifted to New Haven normal)')
+    sns.lineplot(x=df_blue_hill_1811_2020_tobs_adjusted.dropna().index, y=(pd.Series(df_blue_hill_1811_2020_tobs_adjusted['blue_hill'].values).dropna().rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean() + (normal_new_haven-normal_blue_hill), ls='-', lw=3, color='green', alpha=1, zorder=20, label='$T_{g}$: 2yr MA: Tobs-adjusted GloSAT: 1811-2020 (shifted to New Haven normal)')
     sns.lineplot(x=df_blue_hill_1811_2020_tobs_adjusted.dropna().index, y=(pd.Series(df_blue_hill_1811_2020_tobs_adjusted['blue_hill'].values).dropna().rolling(24,center=True).mean()).ewm(span=24, adjust=False).mean() + (normal_providence_wso-normal_blue_hill), ls='-', lw=3, color='navy', alpha=1, zorder=20, label='$T_{g}$: 2yr MA: Tobs-adjusted GloSAT: 1811-2020 (shifted to Providence WSO normal)')
     
     if use_fahrenheit == True:
@@ -2890,36 +2961,7 @@ if plot_glosat_adjusted_vs_neighbours == True:
     
 if plot_glosat_adjusted_with_back_extension == True:
         
-    print('plotting GloSAT adjusted timeseries with back-extension ... ')
-
-    # CALCULATE: Holyoke daily T(919) and Wigglesworth daily T(919) and reample to monthly timescale
-     
-    df_holyoke_919 = centigrade_to_fahrenheit( (df_holyoke['T(08:00)']+df_holyoke['T(13:00)']+df_holyoke['T(22:00)']+df_holyoke['T(sunset)'])/4.0 )
-    df_holyoke_919 = pd.DataFrame({'T(919)':df_holyoke_919.values}, index=pd.to_datetime(df_holyoke_919.index))
-    df_holyoke_919.index.name = 'datetime'
-    df_holyoke_919_xr = df_holyoke_919.to_xarray()
-    df_holyoke_919_xr_resampled = df_holyoke_919_xr['T(919)'].resample(datetime='MS').mean().to_dataset()
-    df_holyoke_919 = pd.DataFrame({'T(919)':df_holyoke_919_xr_resampled['T(919)'].values}, index=df_holyoke_919_xr_resampled.datetime.values)
-    df_holyoke_919.index.name = 'datetime'
-    
-    df_wigglesworth_919 = centigrade_to_fahrenheit( (df_wigglesworth['T(08:00)']+df_wigglesworth['T(13:00)']+df_wigglesworth['T(21:00)'])/3.0 )  
-    df_wigglesworth_919 = pd.DataFrame({'T(919)':df_wigglesworth_919.values}, index=pd.to_datetime(df_wigglesworth_919.index))
-    df_wigglesworth_919.index.name = 'datetime'
-    df_wigglesworth_919_xr = df_wigglesworth_919.to_xarray()
-    df_wigglesworth_919_xr_resampled = df_wigglesworth_919_xr['T(919)'].resample(datetime='MS').mean().to_dataset()
-    df_wigglesworth_919 = pd.DataFrame({'T(919)':df_wigglesworth_919_xr_resampled['T(919)'].values}, index=df_wigglesworth_919_xr_resampled.datetime.values)
-    df_wigglesworth_919.index.name = 'datetime'
-    
-    df_farrar_919 = centigrade_to_fahrenheit( df_farrar['Tmean'] )  
-    df_farrar_919 = pd.DataFrame({'T(919)':df_farrar_919.values}, index=pd.to_datetime(df_farrar_919.index))
-    df_farrar_919.index.name = 'datetime'
-    
-    # CALCULATE: back-extension using Farrar downshifted using Boston normal
-    
-    df_farrar_aligned = (df_farrar_919.copy() - (normal_boston_city_wso - normal_blue_hill))
-    df_farrar_1790_1810 = df_farrar_aligned[df_farrar_aligned.index<pd.to_datetime('1811-01-01')]
-    df_farrar_1790_1810_shifted = df_farrar_1790_1810.rename(columns = {'T(919)':'blue_hill'})
-    df_blue_hill_1790_2020_tobs_adjusted = df_farrar_1790_1810_shifted.append(df_blue_hill_1811_2020_tobs_adjusted)
+    print('plotting GloSAT adjusted timeseries with back-extension ... ')   
     
     sequential_colors = sns.color_palette(color_palette, 3)
     sns.set_palette(sequential_colors)
@@ -2932,12 +2974,11 @@ if plot_glosat_adjusted_with_back_extension == True:
     # PLOT: 2yr MA smoothed timeseries
     
     plt.plot(df_boston_city_wso.index, pd.Series(df_boston_city_wso['boston_city_wso']).rolling(24,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), ls='-', lw=3, color='lime', alpha=1, zorder=5, label=r'$T_{g}$ 2yr MA: Boston City WSO (reference) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
-    plt.plot(df_holyoke_919.index, pd.Series(df_holyoke_919['T(919)']).rolling(24,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='g', alpha=0.2, zorder=3, label=r'$T_{g}$ 2yr MA: Salem, MA (Holyoke) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
+    plt.plot(df_holyoke_919.index, pd.Series(df_holyoke_919['T(919)']).rolling(24,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='green', alpha=0.2, zorder=3, label=r'$T_{g}$ 2yr MA: Salem, MA (Holyoke) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
     plt.plot(df_wigglesworth_919.index, pd.Series(df_wigglesworth_919['T(919)']).rolling(24,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='teal', alpha=0.2, zorder=3, label=r'$T_{g}$ 2yr MA: Salem, MA (Wigglesworth) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
     plt.plot(df_farrar_919.index, pd.Series(df_farrar_919['T(919)']).rolling(24,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='navy', alpha=0.5, zorder=3, label=r'$T_{g}$ 2yr MA: Cambridge, MA (Farrar) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
-    plt.plot(df_blue_hill_1790_2020_tobs_adjusted.index, (pd.Series(df_blue_hill_1790_2020_tobs_adjusted['blue_hill'].values).rolling(24,center=True).mean()), ls='-', lw=3, color='r', alpha=1, zorder=20, label='$T_{g}$: 2yr MA: Tobs-adjusted GloSAT: 1790-2020')
-    ax.set_xlim(pd.to_datetime('1743-01-01'),pd.to_datetime('1885-01-01'))
-    
+    plt.plot(df_blue_hill_1790_2020_tobs_adjusted.index, (pd.Series(df_blue_hill_1790_2020_tobs_adjusted['blue_hill'].values).rolling(24,center=True).mean()), ls='-', lw=3, color='red', alpha=1, zorder=20, label='$T_{g}$: 2yr MA: Tobs-adjusted GloSAT: 1790-2020')
+    ax.set_xlim(pd.to_datetime('1743-01-01'),pd.to_datetime('1885-01-01'))    
     if use_fahrenheit == True:
         ax.set_ylim(40,55)
     else:
@@ -2951,6 +2992,32 @@ if plot_glosat_adjusted_with_back_extension == True:
     plt.savefig(figstr, dpi=300)
     plt.close('all')
 
+#==============================================================================
+    
+if plot_glosat_adjusted_with_back_extension_vs_cet == True:
+        
+    print('plotting GloSAT adjusted timeseries with back-extension vs CET ... ')   
+        
+    figstr = 'bho-glosat-tobs-adjusted-with-back-extension-cet.png'
+    titlestr = 'BHO: $T_{obs}$-adjusted GloSAT with back-extension vs CET'
+            
+    fig, ax = plt.subplots(figsize=(15,10))
+    plt.plot(convert_datetime_to_year_decimal(df_boston_city_wso, 'datetime'), pd.Series(df_boston_city_wso['boston_city_wso']).rolling(60,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), ls='-', lw=3, color='lime', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: Boston City WSO (reference) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
+    plt.plot(convert_datetime_to_year_decimal(df_blue_hill_1790_2020_tobs_adjusted, 'datetime'), (pd.Series(df_blue_hill_1790_2020_tobs_adjusted['blue_hill'].values).rolling(60,center=True).mean()), ls='-', lw=3, color='red', alpha=1, zorder=20, label='$T_{g}$: 5yr MA: CNET: 1790-2020')
+    plt.plot(df_cet.index, pd.Series(df_cet['df_cet']).rolling(60,center=True).mean(), ls='-', lw=3, color='teal', label='$T_{g}$: 5yr MA: CET: 1659-2020')
+    if use_fahrenheit == True:
+        ax.set_ylim(40,55)
+    else:
+        ax.set_ylim(-20,40)
+    plt.xlabel('Year', fontsize=fontsize)
+    plt.ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    plt.title(titlestr, fontsize=fontsize)
+    plt.tick_params(labelsize=fontsize)    
+    plt.legend(loc='upper left', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    fig.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')
+    
 #==============================================================================
     
 if save_glosat_adjustments == True:
@@ -3096,8 +3163,8 @@ print('** END')
 #plt.plot(pd.date_range(start='1987-02-01', periods=len(x)), x['Tmin'], color='blue', alpha=0.2, label='Tn[daily]')
 #plt.plot(pd.date_range(start='1987-02-01', periods=len(x), freq='D'), x['Tg'], color='purple', alpha=0.2, label='Tg[daily]')
 #plt.plot(pd.date_range(start='1987-02-01', periods=len(x)), x['Tmax'], color='red', alpha=0.2, label='Tx[daily]')
-#plt.plot(pd.date_range(start='1987-03-01', periods=len(y), freq='MS'), y['Tg'], '.', color='b', ls='-', lw=3, label='Tg[monthly]')
-#plt.plot(pd.date_range(start='1987-03-01', periods=len(y), freq='MS'), y['Tgm'], ',', color='r', ls='_', lw=3, label='Tg[from daily]')
+#plt.plot(pd.date_range(start='1987-03-01', periods=len(y), freq='MS'), y['Tg'], '.', color='blue', ls='-', lw=3, label='Tg[monthly]')
+#plt.plot(pd.date_range(start='1987-03-01', periods=len(y), freq='MS'), y['Tgm'], ',', color='red', ls='_', lw=3, label='Tg[from daily]')
 #plt.legend()
 #plt.savefig('outlier_case_20210615.png', dpi=300)
 #plt.close('all')
