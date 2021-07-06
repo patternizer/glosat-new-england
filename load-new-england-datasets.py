@@ -4,8 +4,8 @@
 #------------------------------------------------------------------------------
 # PROGRAM: load-new-england-datasets.py
 #------------------------------------------------------------------------------
-# Version 0.10
-# 3 July, 2021
+# Version 0.11
+# 6 July, 2021
 # Michael Taylor
 # https://patternizer.github.io
 # patternizer AT gmail DOT com
@@ -110,19 +110,20 @@ load_ghcnm = True
 load_20crv3 = True
 load_hadcrut5 = True
 load_cet = True
+load_st_lawrence_valley = True
 
 save_monthly_adjustments = True
 save_glosat_adjustments = True
 
-plot_historical = True
-plot_differences = True
-plot_differences_heatmap = True
-plot_kde = True
-plot_ghcn = True
-plot_inventory = True
-plot_glosat_neighbours = True
-plot_bho_all_sources = True
-plot_glosat_adjusted_vs_neighbours = True
+plot_historical = False
+plot_differences = False
+plot_differences_heatmap = False
+plot_kde = False
+plot_ghcn = False
+plot_inventory = False
+plot_glosat_neighbours = False
+plot_bho_all_sources = False
+plot_glosat_adjusted_vs_neighbours = False
 plot_glosat_adjusted_with_back_extension = True
 plot_glosat_adjusted_with_back_extension_vs_cet = True
 
@@ -281,6 +282,55 @@ if load_glosat == True:
     ts = np.array(da_west_medway.groupby('year').mean().iloc[:,0:12]).ravel()
     t = pd.date_range(start=str(da_west_medway.year.iloc[0]), periods=len(ts), freq='MS')
     df_west_medway = pd.DataFrame({'west_medway':ts}, index=t) 
+
+#==============================================================================
+    
+if load_st_lawrence_valley == True:
+    
+    # LOAD: St Lawrence Valley 1742-2020 data
+        
+    df_st_lawrence_valley = pd.read_csv('OUT/df_st_lawrence_valley.csv', index_col=0)
+    df_st_lawrence_valley.index = pd.to_datetime(df_st_lawrence_valley.index)
+    
+else:
+    
+    #-----------------------------------------------------------------------------
+    # LOAD: St Lawrence Valley (monthly)
+    #-----------------------------------------------------------------------------
+
+    # DATA: Victoria Slonosky, Canada
+            
+    nheader = 0
+    f = open('DATA/st-lawrence_valley_monthly_1742-2019_tmean.txt')
+    lines = f.readlines()
+    years = []
+    vals = []
+    for i in range(nheader,len(lines)):    
+        if i > 0:
+            year = lines[i][0:4]
+            words = lines[i].split('\t')
+            val = 12*[None]
+            for j in range(len(val)):
+                val[j] = float(words[j+1])
+            years.append(year)
+            vals.append(val) 
+    f.close()    
+    years = np.array(years).astype('int')
+    vals = np.array(vals)
+    
+    df = pd.DataFrame(columns=['year','1','2','3','4','5','6','7','8','9','10','11','12'])
+    df['year'] = years
+    for j in range(12):   
+        df[df.columns[j+1]] = [ float(vals[i][j]) for i in range(len(df)) ]
+    da_st_lawrence_valley = df.replace(-999.9,np.nan)    
+        
+    ts = np.array(da_st_lawrence_valley.groupby('year').mean().iloc[:,0:12]).ravel()
+    if da_st_lawrence_valley['year'].iloc[0] > 1678:
+        t_monthly = pd.date_range(start=str(da_st_lawrence_valley['year'].iloc[0]), periods=len(ts), freq='MS')          
+    else:
+        t_monthly = convert_datetime_to_year_decimal(da_st_lawrence_valley, 'year')            
+    df_st_lawrence_valley = pd.DataFrame({'df_st_lawrence_valley':ts}, index=t_monthly) 
+    df_st_lawrence_valley.to_csv('df_st_lawrence_valley.csv')
 
 #==============================================================================
     
@@ -1288,6 +1338,7 @@ if use_fahrenheit == True:
     df_hadcrut5_bho = pd.DataFrame({'df_hadcrut5_bho':centigrade_to_fahrenheit( df_hadcrut5_bho['T(2m)'] )})        
     df_hadcrut5_new_haven = pd.DataFrame({'df_hadcrut5_new_haven':centigrade_to_fahrenheit( df_hadcrut5_new_haven['T(2m)'] )})     
     df_cet = pd.DataFrame({'df_cet':centigrade_to_fahrenheit( df_cet['cet'] )})        
+    df_st_lawrence_valley = pd.DataFrame({'df_st_lawrence_valley':centigrade_to_fahrenheit( df_st_lawrence_valley['df_st_lawrence_valley'] )})        
     
 else:
     
@@ -1446,6 +1497,10 @@ normal_providence_wso = np.nanmean( df_providence_wso[
 (df_providence_wso.index>=pd.to_datetime('1961-01-01')) & 
 (df_providence_wso.index<=pd.to_datetime('1990-12-01')) ]['providence_wso'])
 
+normal_st_lawrence_valley = np.nanmean( df_st_lawrence_valley[     
+(df_st_lawrence_valley.index>=pd.to_datetime('1961-01-01')) & 
+(df_st_lawrence_valley.index<=pd.to_datetime('1990-12-01')) ]['df_st_lawrence_valley'])
+
 # CALCULATE: Holyoke daily T(919) and Wigglesworth daily T(919) and reample to monthly timescale
      
 df_holyoke_919 = (df_holyoke['T(08:00)']+df_holyoke['T(13:00)']+df_holyoke['T(22:00)']+df_holyoke['T(sunset)'])/4.0
@@ -1482,7 +1537,7 @@ df_blue_hill_1790_2020_tobs_adjusted = df_farrar_1790_1810_shifted.append(df_blu
 #------------------------------------------------------------------------------
 # SEABORN:
 #
-# sns.jointplot(x=x y=y, kind='kde', color='blue', marker='+', fill=True)  # kind{ “scatter” | “kde” | “hist” | “hex” | “reg” | “resid” }            
+# sns.jointplot(x=x, y=y, kind='kde', color='blue', marker='+', fill=True)  # kind{ “scatter” | “kde” | “hist” | “hex” | “reg” | “resid” }            
 
 # jointgrid = sns.JointGrid(x=x, y=y, data=df)
 # jointgrid.plot_joint(sns.scatterplot)
@@ -1497,17 +1552,17 @@ df_blue_hill_1790_2020_tobs_adjusted = df_farrar_1790_1810_shifted.append(df_blu
 # sns.histplot(x=x, y=y, bins=100, pthresh=0.01, cmap="Blues")
 # sns.kdeplot(x=x, y=y, levels=10, color="k", linewidths=1)
 # sns.kdeplot(x, color='blue', shade=True, alpha=0.2, legend=True, **kwargs, label='')
-# sns.boxplot(data = df_bho_monthly, orient = "v")
-# sns.violinplot(data = df_bho_monthly, orient = "v")
+# sns.boxplot(data = x, orient = "v")
+# sns.violinplot(data = x, orient = "v")
 #------------------------------------------------------------------------------
 
 #==============================================================================
 
 if plot_historical == True:
     
-    # PLOT: Holyoke observations (daily)
+    # PLOT: Holyoke + Wigglesworth daily observations + T919 (monthly) + Farrar monthly
     
-    print('plotting Holyoke (+ Farrar) osbervations ...')
+    print('plotting Holyoke (daily) + Farrar monthly osbervations ...')
         
     figstr = 'salem(MA)-holyoke-cambridge(MA)-farrar.png'
     titlestr = 'Salem, MA: Holyoke (sub-daily) and Cambridge, MA: Farrar (monthly mean) observations'
@@ -1560,6 +1615,65 @@ if plot_historical == True:
     plt.savefig(figstr, dpi=300)
     plt.close('all')
 
+    # PLOT: Holyoke + Wigglesworth daily observations + T919 (monthly) + Farrar monthly
+
+    print('plotting Holyoke + Wigglesworh + T919 + Farrar osbervations ...')
+        
+    figstr = 'salem(MA)-holyoke-wigglesworth-T919-cambridge(MA)-farrar.png'           
+    titlestr = 'Salem, MA: Holyoke (sub-daily) and Cambridge, MA: Farrar (monthly mean) observations'
+            
+    fig, axs = plt.subplots(figsize=(15,10))    
+    sns.lineplot(x=df_holyoke.index, y=(df_holyoke['T(08:00)']), ax=axs, marker='.', color='blue', alpha=1.0, label='Salem, MA (Holyoke): T(08:00)')
+    sns.lineplot(x=df_holyoke.index, y=(df_holyoke['T(13:00)']), ax=axs, marker='.', color='red', alpha=1.0, label='Salem, MA (Holyoke): T(13:00)')
+    sns.lineplot(x=df_holyoke.index, y=(df_holyoke['T(22:00)']), ax=axs, marker='.', color='purple', alpha=1.0, label='Salem, MA (Holyoke): T(22:00)')
+    sns.lineplot(x=df_holyoke.index, y=(df_holyoke['T(sunset)']), ax=axs, marker='.', color='orange', alpha=1.0, label='Salem, MA (Holyoke): T(sunset)')
+    sns.lineplot(x=df_holyoke_919.index, y=(df_holyoke_919['T(919)']), ax=axs, color='purple', ls='-', lw=3, alpha=1.0, label='Salem, MA (Holyoke): T(919) monthly')
+    sns.lineplot(x=df_wigglesworth_919.index, y=(df_wigglesworth_919['T(919)']), ax=axs, color='teal', ls='-', lw=3, alpha=1.0, label='Salem, MA (Wigglesworth): T(919) monthly')
+    sns.lineplot(x=df_farrar.index, y=(df_farrar['Tmean']), ax=axs, marker='.', color='navy', ls='-', lw=3, label='Cambridge, MA (Farrar): T(mean) monthly')    
+    if use_fahrenheit == True:
+        axs.set_ylim(-20,110)
+    else:
+        axs.set_ylim(-30,40)
+    axs.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    axs.set_xlim(pd.Timestamp('1785-01-01'),pd.Timestamp('1835-01-01'))
+    axs.set_xlabel('Year', fontsize=fontsize)
+    axs.set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    axs.set_title(titlestr, fontsize=fontsize)
+    axs.tick_params(labelsize=fontsize)    
+    fig.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')
+
+    # PLOT: Farrar (Tmean) vs Holyoke T919 and Wigglesworth T919
+    
+    print('plotting Farrar vs Holyoke T919 and Wigglesworh T919 ...')
+
+    figstr = 'salem(MA)-holyoke-T919-wigglesworth-T919-cambridge(MA)-farrar-regression.png'
+    titlestr = 'Salem, MA: Holyoke (sub-daily) plus T(919) monthly vs Cambridge, MA: Farrar (monthly mean) observations'
+            
+    fig, axs = plt.subplots(figsize=(15,10))
+        
+    x = df_farrar['Tmean']
+    y1 = df_holyoke_919['T(919)']
+    y2 = df_wigglesworth_919['T(919)']
+    sns.jointplot(x=x, y=y1, kind='kde', color='purple', marker='+', fill=True)  # kind{ “scatter” | “kde” | “hist” | “hex” | “reg” | “resid” }            
+    sns.jointplot(x=x, y=y2, kind='kde', color='teal', marker='+', fill=True)  # kind{ “scatter” | “kde” | “hist” | “hex” | “reg” | “resid” }            
+
+ #   if use_fahrenheit == True:
+ #       axs.set_ylim(-20,110)
+ #   else:
+ #       axs.set_ylim(-30,40)
+        
+#    axs.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+#    axs.set_xlim(pd.Timestamp('1785-01-01'),pd.Timestamp('1835-01-01'))
+#    axs.set_xlabel('Year', fontsize=fontsize)
+#    axs.set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    axs.set_title(titlestr, fontsize=fontsize)
+    axs.tick_params(labelsize=fontsize)    
+    fig.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')
+            
 #==============================================================================
 
 if plot_differences == True:
@@ -2962,22 +3076,18 @@ if plot_glosat_adjusted_vs_neighbours == True:
 if plot_glosat_adjusted_with_back_extension == True:
         
     print('plotting GloSAT adjusted timeseries with back-extension ... ')   
-    
-    sequential_colors = sns.color_palette(color_palette, 3)
-    sns.set_palette(sequential_colors)
-    
+ 
+    nsmooth = 60
+       
     figstr = 'bho-glosat-tobs-adjusted-with-back-extension.png'
     titlestr = 'BHO: $T_{obs}$-adjusted GloSAT with back-extension'
-            
-    fig, ax = plt.subplots(figsize=(15,10))
-    
-    # PLOT: 2yr MA smoothed timeseries
-    
-    plt.plot(df_boston_city_wso.index, pd.Series(df_boston_city_wso['boston_city_wso']).rolling(24,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), ls='-', lw=3, color='lime', alpha=1, zorder=5, label=r'$T_{g}$ 2yr MA: Boston City WSO (reference) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
-    plt.plot(df_holyoke_919.index, pd.Series(df_holyoke_919['T(919)']).rolling(24,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='green', alpha=0.2, zorder=3, label=r'$T_{g}$ 2yr MA: Salem, MA (Holyoke) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
-    plt.plot(df_wigglesworth_919.index, pd.Series(df_wigglesworth_919['T(919)']).rolling(24,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='teal', alpha=0.2, zorder=3, label=r'$T_{g}$ 2yr MA: Salem, MA (Wigglesworth) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
-    plt.plot(df_farrar_919.index, pd.Series(df_farrar_919['T(919)']).rolling(24,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='navy', alpha=0.5, zorder=3, label=r'$T_{g}$ 2yr MA: Cambridge, MA (Farrar) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
-    plt.plot(df_blue_hill_1790_2020_tobs_adjusted.index, (pd.Series(df_blue_hill_1790_2020_tobs_adjusted['blue_hill'].values).rolling(24,center=True).mean()), ls='-', lw=3, color='red', alpha=1, zorder=20, label='$T_{g}$: 2yr MA: Tobs-adjusted GloSAT: 1790-2020')
+               
+    fig, ax = plt.subplots(figsize=(15,10))    
+    plt.plot(df_boston_city_wso.index, pd.Series(df_boston_city_wso['boston_city_wso']).rolling(nsmooth,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), ls='-', lw=3, color='lime', alpha=1, zorder=5, label=r'$T_{g}$ 2yr MA: Boston City WSO (reference) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
+    plt.plot(df_holyoke_919.index, pd.Series(df_holyoke_919['T(919)']).rolling(nsmooth,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='green', alpha=0.2, zorder=3, label=r'$T_{g}$ 2yr MA: Salem, MA (Holyoke) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
+    plt.plot(df_wigglesworth_919.index, pd.Series(df_wigglesworth_919['T(919)']).rolling(nsmooth,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='teal', alpha=0.2, zorder=3, label=r'$T_{g}$ 2yr MA: Salem, MA (Wigglesworth) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
+    plt.plot(df_farrar_919.index, pd.Series(df_farrar_919['T(919)']).rolling(nsmooth,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='navy', alpha=0.5, zorder=3, label=r'$T_{g}$ 2yr MA: Cambridge, MA (Farrar) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
+    plt.plot(df_blue_hill_1790_2020_tobs_adjusted.index, (pd.Series(df_blue_hill_1790_2020_tobs_adjusted['blue_hill'].values).rolling(nsmooth,center=True).mean()), ls='-', lw=3, color='red', alpha=1, zorder=20, label='$T_{g}$: 2yr MA: Tobs-adjusted GloSAT: 1790-2020')
     ax.set_xlim(pd.to_datetime('1743-01-01'),pd.to_datetime('1885-01-01'))    
     if use_fahrenheit == True:
         ax.set_ylim(40,55)
@@ -2998,13 +3108,16 @@ if plot_glosat_adjusted_with_back_extension_vs_cet == True:
         
     print('plotting GloSAT adjusted timeseries with back-extension vs CET ... ')   
         
+    nsmooth = 60
+    
     figstr = 'bho-glosat-tobs-adjusted-with-back-extension-cet.png'
-    titlestr = 'BHO: $T_{obs}$-adjusted GloSAT with back-extension vs CET'
+    titlestr = 'BHO: $T_{obs}$-adjusted GloSAT with back-extension vs CET and SLV'
             
     fig, ax = plt.subplots(figsize=(15,10))
-    plt.plot(convert_datetime_to_year_decimal(df_boston_city_wso, 'datetime'), pd.Series(df_boston_city_wso['boston_city_wso']).rolling(60,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), ls='-', lw=3, color='lime', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: Boston City WSO (reference) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
-    plt.plot(convert_datetime_to_year_decimal(df_blue_hill_1790_2020_tobs_adjusted, 'datetime'), (pd.Series(df_blue_hill_1790_2020_tobs_adjusted['blue_hill'].values).rolling(60,center=True).mean()), ls='-', lw=3, color='red', alpha=1, zorder=20, label='$T_{g}$: 5yr MA: CNET: 1790-2020')
-    plt.plot(df_cet.index, pd.Series(df_cet['df_cet']).rolling(60,center=True).mean(), ls='-', lw=3, color='teal', label='$T_{g}$: 5yr MA: CET: 1659-2020')
+    plt.plot(convert_datetime_to_year_decimal(df_boston_city_wso, 'datetime'), pd.Series(df_boston_city_wso['boston_city_wso']).rolling(nsmooth,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), ls='-', lw=3, color='lime', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: Boston City WSO (reference) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
+    plt.plot(convert_datetime_to_year_decimal(df_st_lawrence_valley, 'datetime'), pd.Series(df_st_lawrence_valley['df_st_lawrence_valley']).rolling(nsmooth,center=True).mean() - (normal_st_lawrence_valley - normal_blue_hill), ls='-', lw=3, color='cyan', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: St Lawrence Valley (reference) - $\Delta$(1961-1990)=' + str(np.round((normal_st_lawrence_valley - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
+    plt.plot(convert_datetime_to_year_decimal(df_blue_hill_1790_2020_tobs_adjusted, 'datetime'), (pd.Series(df_blue_hill_1790_2020_tobs_adjusted['blue_hill'].values).rolling(nsmooth,center=True).mean()), ls='-', lw=3, color='red', alpha=1, zorder=20, label='$T_{g}$: 5yr MA: CNET: 1790-2020')
+    plt.plot(df_cet.index, pd.Series(df_cet['df_cet']).rolling(nsmooth,center=True).mean(), ls='-', lw=3, color='teal', label='$T_{g}$: 5yr MA: CET: 1659-2020')
     if use_fahrenheit == True:
         ax.set_ylim(40,55)
     else:
