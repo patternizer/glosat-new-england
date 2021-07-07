@@ -111,6 +111,7 @@ load_20crv3 = True
 load_hadcrut5 = True
 load_cet = True
 load_st_lawrence_valley = True
+load_amherst2 = True
 
 save_monthly_adjustments = True
 save_glosat_adjustments = True
@@ -126,6 +127,7 @@ plot_bho_all_sources = False
 plot_glosat_adjusted_vs_neighbours = False
 plot_glosat_adjusted_with_back_extension = True
 plot_glosat_adjusted_with_back_extension_vs_cet = True
+plot_glosat_adjusted_with_back_extension_vs_cet_anomalies = True
 
 if use_fahrenheit: 
     temperature_unit = 'F'
@@ -284,6 +286,55 @@ if load_glosat == True:
     df_west_medway = pd.DataFrame({'west_medway':ts}, index=t) 
 
 #==============================================================================
+    
+if load_amherst2 == True:
+    
+    # LOAD: Amherst 1836-2021 data
+        
+    df_amherst2 = pd.read_csv('OUT/df_amherst2.csv', index_col=0)
+    df_amherst2.index = pd.to_datetime(df_amherst2.index)
+    
+else:
+    
+    #-----------------------------------------------------------------------------
+    # LOAD: Amherst 1836-2021 (monthly)
+    #-----------------------------------------------------------------------------
+
+    # DATA: Phil Jones
+
+    nheader = 0
+    f = open('DATA/tmean_Amherst_1836_2021.txt')
+    lines = f.readlines()
+    years = []
+    vals = []
+    for i in range(nheader,len(lines)):    
+        if i > 0:
+            year = lines[i][0:4]
+            words = lines[i].split(',')
+            val = 12*[None]
+            for j in range(len(val)):
+                val[j] = float(words[j+1])
+            years.append(year)
+            vals.append(val) 
+    f.close()    
+    years = np.array(years).astype('int')
+    vals = np.array(vals)
+    
+    df = pd.DataFrame(columns=['year','1','2','3','4','5','6','7','8','9','10','11','12'])
+    df['year'] = years
+    for j in range(12):   
+        df[df.columns[j+1]] = [ float(vals[i][j]) for i in range(len(df)) ]
+    da_amherst2 = df.replace(-99.9,np.nan)    
+        
+    ts = np.array(da_amherst2.groupby('year').mean().iloc[:,0:12]).ravel()
+    if da_amherst2['year'].iloc[0] > 1678:
+        t_monthly = pd.date_range(start=str(da_amherst2['year'].iloc[0]), periods=len(ts), freq='MS')          
+    else:
+        t_monthly = convert_datetime_to_year_decimal(da_amherst2, 'year')            
+    df_amherst2 = pd.DataFrame({'amherst2':ts}, index=t_monthly) 
+    df_amherst2.to_csv('df_amherst2.csv')
+            
+    #==============================================================================
     
 if load_st_lawrence_valley == True:
     
@@ -1484,6 +1535,10 @@ df_ghcnmv4_qcf_1811_1959 = df_ghcnmv4_qcf[ (df_ghcnmv4_qcf.index>=pd.to_datetime
 normal_blue_hill = np.nanmean( df_blue_hill_1811_2020_tobs_adjusted[     
 (df_blue_hill_1811_2020_tobs_adjusted.index>=pd.to_datetime('1961-01-01')) & 
 (df_blue_hill_1811_2020_tobs_adjusted.index<=pd.to_datetime('1990-12-01')) ]['blue_hill'])
+
+normal_cet = np.nanmean( df_cet[     
+(df_cet.index>=1961.0) & 
+(df_cet.index<1991.0) ]['df_cet'])
     
 normal_boston_city_wso = np.nanmean( df_boston_city_wso[     
 (df_boston_city_wso.index>=pd.to_datetime('1961-01-01')) & 
@@ -1500,6 +1555,14 @@ normal_providence_wso = np.nanmean( df_providence_wso[
 normal_st_lawrence_valley = np.nanmean( df_st_lawrence_valley[     
 (df_st_lawrence_valley.index>=pd.to_datetime('1961-01-01')) & 
 (df_st_lawrence_valley.index<=pd.to_datetime('1990-12-01')) ]['df_st_lawrence_valley'])
+
+normal_amherst = np.nanmean( df_amherst[     
+(df_amherst.index>=pd.to_datetime('1961-01-01')) & 
+(df_amherst.index<=pd.to_datetime('1990-12-01')) ]['amherst'])
+
+normal_amherst2 = np.nanmean( df_amherst2[     
+(df_amherst2.index>=pd.to_datetime('1961-01-01')) & 
+(df_amherst2.index<=pd.to_datetime('1990-12-01')) ]['amherst2'])
 
 # CALCULATE: Holyoke daily T(919) and Wigglesworth daily T(919) and reample to monthly timescale
      
@@ -2483,6 +2546,44 @@ if plot_differences == True:
     plt.savefig(figstr, dpi=300)
     plt.close('all')    
 
+    print('plotting Amherst: GloSAT (Amherst 1) vs Amherst 2 ...')
+
+    df_amherst_diff = df_amherst2.copy()
+    df_amherst_diff['amherst1'] = df_amherst
+#   plt.plot(df_amherst_diff['amherst1']-df_amherst_diff['amherst2'])
+    
+    figstr = 'bho-glosat-tg-amherst1-vs-amherst2.png'
+    titlestr = 'Amherst: monthly GloSAT $T_g$ vs Amherst 2'
+
+    fig, axs = plt.subplots(2,1, figsize=(15,10))
+    sns.lineplot(x=df_amherst_diff['amherst1'].index, y=df_amherst_diff['amherst1'], ax=axs[0], marker='o', color='red', alpha=1.0, label='$T_{g}$ GloSAT Amherst 1')
+    axs[0].plot(df_amherst_diff['amherst2'].index, df_amherst_diff['amherst2'], marker='.', color='blue', alpha=1.0, label='$T_{g}$ Amherst 2')
+    axs[1].plot(df_amherst_diff['amherst1'].index, df_amherst_diff['amherst1'] - df_amherst_diff['amherst2'], color='teal')
+
+    mean_difference = np.nanmean( df_amherst_diff['amherst1'] - df_amherst_diff['amherst2'] )
+    sns.lineplot(x=df_amherst_diff['amherst1'], y=len(df_amherst_diff['amherst1'])*[ mean_difference ], ls='--', lw=1, color='black', label='$\mu$=' + str(np.round(mean_difference,2)) + '$^{\circ}$F')            
+    axs[1].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    
+    axs[0].legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    axs[0].set_xlabel('', fontsize=fontsize)
+    axs[0].set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    axs[0].set_title(titlestr, fontsize=fontsize)
+    axs[0].tick_params(labelsize=fontsize)    
+    axs[1].sharex(axs[0])
+    axs[1].tick_params(labelsize=fontsize)    
+    axs[1].set_xlabel('Year', fontsize=fontsize)
+    axs[1].set_ylabel(r'Amherst 1 - Amherst 2, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    if use_fahrenheit == True:
+        axs[0].set_ylim(0,80)
+        axs[1].set_ylim(-15,15)
+    else:
+        axs[0].set_ylim(-20,30)
+        axs[1].set_ylim(-1.5,0.5)
+    fig.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')    
+
+
 #==============================================================================
                       
 if plot_differences_heatmap == True:
@@ -3111,11 +3212,13 @@ if plot_glosat_adjusted_with_back_extension_vs_cet == True:
     nsmooth = 60
     
     figstr = 'bho-glosat-tobs-adjusted-with-back-extension-cet.png'
-    titlestr = 'BHO: $T_{obs}$-adjusted GloSAT with back-extension vs CET and SLV'
+    titlestr = 'BHO: $T_{obs}$-adjusted GloSAT with back-extension vs CET and regional timeseries'
             
     fig, ax = plt.subplots(figsize=(15,10))
     plt.plot(convert_datetime_to_year_decimal(df_boston_city_wso, 'datetime'), pd.Series(df_boston_city_wso['boston_city_wso']).rolling(nsmooth,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), ls='-', lw=3, color='lime', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: Boston City WSO (reference) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
     plt.plot(convert_datetime_to_year_decimal(df_st_lawrence_valley, 'datetime'), pd.Series(df_st_lawrence_valley['df_st_lawrence_valley']).rolling(nsmooth,center=True).mean() - (normal_st_lawrence_valley - normal_blue_hill), ls='-', lw=3, color='cyan', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: St Lawrence Valley (reference) - $\Delta$(1961-1990)=' + str(np.round((normal_st_lawrence_valley - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
+    plt.plot(convert_datetime_to_year_decimal(df_amherst, 'datetime'), pd.Series(df_amherst['amherst']).rolling(nsmooth,center=True).mean() - (normal_amherst - normal_blue_hill), ls='-', lw=3, color='blue', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: Amherst 1 (reference) - $\Delta$(1961-1990)=' + str(np.round((normal_amherst - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
+    plt.plot(convert_datetime_to_year_decimal(df_amherst2, 'datetime'), pd.Series(df_amherst2['amherst2']).rolling(nsmooth,center=True).mean() - (normal_amherst2 - normal_blue_hill), ls='-', lw=3, color='navy', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: Amherst 2 (reference) - $\Delta$(1961-1990)=' + str(np.round((normal_amherst2 - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
     plt.plot(convert_datetime_to_year_decimal(df_blue_hill_1790_2020_tobs_adjusted, 'datetime'), (pd.Series(df_blue_hill_1790_2020_tobs_adjusted['blue_hill'].values).rolling(nsmooth,center=True).mean()), ls='-', lw=3, color='red', alpha=1, zorder=20, label='$T_{g}$: 5yr MA: CNET: 1790-2020')
     plt.plot(df_cet.index, pd.Series(df_cet['df_cet']).rolling(nsmooth,center=True).mean(), ls='-', lw=3, color='teal', label='$T_{g}$: 5yr MA: CET: 1659-2020')
     if use_fahrenheit == True:
@@ -3130,7 +3233,38 @@ if plot_glosat_adjusted_with_back_extension_vs_cet == True:
     fig.tight_layout()
     plt.savefig(figstr, dpi=300)
     plt.close('all')
+
+#==============================================================================
     
+if plot_glosat_adjusted_with_back_extension_vs_cet_anomalies == True:
+        
+    print('plotting GloSAT adjusted timeseries with back-extension vs CET and regional timeseries anomalies ... ')   
+        
+    nsmooth = 60
+    
+    figstr = 'bho-glosat-tobs-adjusted-with-back-extension-cet-anomalies.png'
+    titlestr = 'BHO: $T_{obs}$-adjusted GloSAT with back-extension vs CET and regional timeseries'
+            
+    fig, ax = plt.subplots(figsize=(15,10))
+    plt.plot(convert_datetime_to_year_decimal(df_boston_city_wso, 'datetime'), pd.Series(df_boston_city_wso['boston_city_wso'] - normal_boston_city_wso).rolling(nsmooth,center=True).mean(), ls='-', lw=3, color='lime', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: Boston City WSO (reference) anomalies (from 1961-1990)')
+    plt.plot(convert_datetime_to_year_decimal(df_st_lawrence_valley, 'datetime'), pd.Series(df_st_lawrence_valley['df_st_lawrence_valley'] - normal_st_lawrence_valley).rolling(nsmooth,center=True).mean(), ls='-', lw=3, color='cyan', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: St Lawrence Valley (reference) anaomlies (from 1961-1990)')
+    plt.plot(convert_datetime_to_year_decimal(df_amherst, 'datetime'), pd.Series(df_amherst['amherst'] - normal_amherst).rolling(nsmooth,center=True).mean(), ls='-', lw=3, color='blue', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: Amherst 1 (reference) anomalies (from 1961-1990)')
+    plt.plot(convert_datetime_to_year_decimal(df_amherst2, 'datetime'), pd.Series(df_amherst2['amherst2'] - normal_amherst2).rolling(nsmooth,center=True).mean(), ls='-', lw=3, color='navy', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: Amherst 2 (reference) anomalies (from 1961-1990)')
+    plt.plot(convert_datetime_to_year_decimal(df_blue_hill_1790_2020_tobs_adjusted, 'datetime'), (pd.Series(df_blue_hill_1790_2020_tobs_adjusted['blue_hill'].values - normal_blue_hill).rolling(nsmooth,center=True).mean()), ls='-', lw=3, color='red', alpha=1, zorder=20, label='$T_{g}$: 5yr MA: CNET: 1790-2020 anomalies (from 1961-1990)')
+    plt.plot(df_cet.index, pd.Series(df_cet['df_cet'] - normal_cet).rolling(nsmooth,center=True).mean(), ls='-', lw=3, color='teal', label='$T_{g}$: 5yr MA: CET: 1659-2020 anomalies (from 1961-1990)')
+#    if use_fahrenheit == True:
+#        ax.set_ylim(40,55)
+#    else:
+#        ax.set_ylim(-20,40)
+    plt.xlabel('Year', fontsize=fontsize)
+    plt.ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    plt.title(titlestr, fontsize=fontsize)
+    plt.tick_params(labelsize=fontsize)    
+    plt.legend(loc='upper left', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    fig.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')
+        
 #==============================================================================
     
 if save_glosat_adjustments == True:
