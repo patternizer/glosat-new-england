@@ -12,7 +12,7 @@ import xlrd
 import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 
-workbook1 = xlrd.open_workbook('BlueHillObservatory_Temperature_Mean_MxMn2_Monthly_v2.0.xlsx')
+workbook1 = xlrd.open_workbook('DATA/BlueHillObservatory_Temperature_Mean_MxMn2_Monthly_v2.0.xlsx')
 
 worksheet = workbook1.sheet_by_index(1)
 years = [ int(worksheet.cell(i, 0).value) for i in range(5,141) ]
@@ -28,8 +28,7 @@ for j in range(12):
     month = [ float(worksheet.cell(i, j+1).value) for i in range(5,141) ]
     dC1[str(j+1)] = month
     
-#workbook2 = xlrd.open_workbook('BlueHillObservatory_Temperature_Mean_MxMn2_Monthly_v2.0_20210625.xlsx')
-workbook2 = xlrd.open_workbook('BlueHillObservatory_Temperature_Mean_MxMn2_Monthly_v2.0_20210626.xlsx')
+workbook2 = xlrd.open_workbook('DATA/BlueHillObservatory_Temperature_Mean_MxMn2_Monthly_v2.0_20210626.xlsx')
 
 worksheet = workbook2.sheet_by_index(1)
 years = [ int(worksheet.cell(i, 0).value) for i in range(5,141) ]

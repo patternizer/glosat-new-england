@@ -6,7 +6,9 @@ Python codebase for construction of a long timeseries of New England temperature
 
 ## Contents
 
-* `load-new-england-datasets.py` - python script to read in, parse and form dataframes from source data
+* `load-new-england-datasets.py` - python script to read in, parse and generate BHO with back-extension 1786-2021 form source data operations
+* `load-excel.py` - python helper script to read in BHO observation data from spreadsheets
+* `load-ghcnm.py` - python helper script to read in selected station timeseries from GHCNMv4 (QCU and QCF) for processing code
 
 ## Instructions for use
 
@@ -22,8 +24,10 @@ Then create a DATA/ directory and copy to it the required inventories listed in 
 The code is designed to run in an environment using Miniconda3-latest-Linux-x86_64.
 
     $ python load-new-england-datasets.py
+    $ python load-excel.py
+    $ python load-ghcnm.py
 
-This will generate comma separated value (CSV) output files corresponding to the Pandas dataframes constructed from the source data.
+This will generate comma separated value (CSV) output files corresponding to the Pandas dataframes constructed from the source data and analysis plots.
 
 ## License
 
@@ -32,4 +36,5 @@ The code is distributed under terms and conditions of the [Open Government Licen
 ## Contact information
 
 * [Michael Taylor](michael.a.taylor@uea.ac.uk)
+
 

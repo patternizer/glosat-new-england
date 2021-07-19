@@ -73,6 +73,9 @@ from statsmodels.tsa.stattools import adfuller
 import statsmodels.api as sm
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
+# Maths libraries
+import scipy
+
 # Datetime libraries
 import cftime
 import calendar 
@@ -102,29 +105,29 @@ fontsize = 16
 color_palette = 'viridis_r'
 use_fahrenheit = True
 
-load_historical_observations = True
-load_bho_observations = True
-load_neighbouring_stations = True
 load_glosat = True
-load_ghcnm = True
-load_20crv3 = True
-load_hadcrut5 = True
-load_cet = True
-load_st_lawrence_valley = True
-load_amherst2 = True
+load_historical_observations = False
+load_bho_observations = False
+load_neighbouring_stations = False
+load_ghcnm = False
+load_20crv3 = False
+load_hadcrut5 = False
+load_cet = False
+load_st_lawrence_valley = False
+load_amherst2 = False
 
 save_monthly_adjustments = True
 save_glosat_adjustments = True
 
-plot_historical = False
-plot_differences = False
-plot_differences_heatmap = False
-plot_kde = False
-plot_ghcn = False
-plot_inventory = False
-plot_glosat_neighbours = False
-plot_bho_all_sources = False
-plot_glosat_adjusted_vs_neighbours = False
+plot_historical = True
+plot_differences = True
+plot_differences_heatmap = True
+plot_kde = True
+plot_ghcn = True
+plot_inventory = True
+plot_glosat_neighbours = True
+plot_bho_all_sources = True
+plot_glosat_adjusted_vs_neighbours = True
 plot_glosat_adjusted_with_back_extension = True
 plot_glosat_adjusted_with_back_extension_vs_cet = True
 plot_glosat_adjusted_with_back_extension_vs_cet_anomalies = True
@@ -134,7 +137,7 @@ if use_fahrenheit:
 else:
     temperature_unit = 'C'
 
-plot_temp = False
+plot_temp = True
 
 #------------------------------------------------------------------------------
 # METHODS: 
@@ -474,12 +477,12 @@ else:
 
     # Dataset: https://psl.noaa.gov/data/gridded/data.20thC_ReanV3.pressure.html#caveat
 
-    ds_20CR_2m = xr.open_dataset('DATA/air.2m.mon.mean.nc', decode_cf=True)
-    ds_20CR_2m_spread = xr.open_dataset('DATA/air.2m.mon.mean.spread.nc', decode_cf=True)
-    ds_20CR_hPa = xr.open_dataset('DATA/air.mon.mean.nc', decode_cf=True)
-    ds_20CR_hPa_spread = xr.open_dataset('DATA/air.mon.mean.spread.nc', decode_cf=True)
-#   ds_20CR_2m_tmin = xr.open_dataset('DATA/tmin.2m.mon.mean.nc', decode_cf=True)
-#   ds_20CR_2m_tmax = xr.open_dataset('DATA/tmax.2m.mon.mean.nc', decode_cf=True)
+    ds_20CR_2m = xr.open_dataset('../../BIGFILES/REPOS/glosat-new-england/DATA/air.2m.mon.mean.nc', decode_cf=True)
+    ds_20CR_2m_spread = xr.open_dataset('../../BIGFILES/REPOS/glosat-new-england/DATA/air.2m.mon.mean.spread.nc', decode_cf=True)
+    ds_20CR_hPa = xr.open_dataset('../../BIGFILES/REPOS/glosat-new-england/DATA/air.mon.mean.nc', decode_cf=True)
+    ds_20CR_hPa_spread = xr.open_dataset('../../BIGFILES/REPOS/glosat-new-england/DATA/air.mon.mean.spread.nc', decode_cf=True)
+#   ds_20CR_2m_tmin = xr.open_dataset('../../BIGFILES/REPOS/glosat-new-england/DATA/tmin.2m.mon.mean.nc', decode_cf=True)
+#   ds_20CR_2m_tmax = xr.open_dataset('../../BIGFILES/REPOS/glosat-new-england/DATA/tmax.2m.mon.mean.nc', decode_cf=True)
 
     bho_idx_lat = 90+42
     bho_idx_lon = 360-71
@@ -616,16 +619,8 @@ if load_historical_observations == True:
 
     # LOAD: Farrar (CRUTEM format)
 
-    da = pd.read_csv('DATA/farrar.dat', index_col=0) # KEYED-IN by MT from the American Almanac, 1837 
-    ts_monthly = []    
-    for i in range(len(da)):                
-        monthly = da.iloc[i,0:]
-        ts_monthly = ts_monthly + monthly.to_list()    
-    ts_monthly = np.array(ts_monthly)   
-    ts_monthly = fahrenheit_to_centigrade(ts_monthly)   
-    t_monthly = pd.date_range(start=str(da.index[0]), periods=len(ts_monthly), freq='MS')    
-    df_farrar = pd.DataFrame({'Tmean':ts_monthly}, index=t_monthly)
-    df_farrar.index.name = 'datetime'
+    df_farrar = pd.read_csv('OUT/df_farrar.csv', index_col=0)
+    df_farrar.index = pd.to_datetime(df_farrar.index)
                
 else:
 
@@ -1107,6 +1102,22 @@ else:
     
     df_wigglesworth = pd.DataFrame({'T(08:00)':T08_365, 'T(13:00)':T13_365, 'T(21:00)':T21_365}, index=t)
     df_wigglesworth.to_csv('df_wigglesworth.csv')
+
+    #------------------------------------------------------------------------------
+    # LOAD: Farrar observations into dataframe
+    #------------------------------------------------------------------------------
+
+    da = pd.read_csv('DATA/farrar.dat', index_col=0) # KEYED-IN by MT from the American Almanac, 1837 
+    ts_monthly = []    
+    for i in range(len(da)):                
+        monthly = da.iloc[i,0:]
+        ts_monthly = ts_monthly + monthly.to_list()    
+    ts_monthly = np.array(ts_monthly)   
+    ts_monthly = fahrenheit_to_centigrade(ts_monthly)   
+    t_monthly = pd.date_range(start=str(da.index[0]), periods=len(ts_monthly), freq='MS')    
+    df_farrar = pd.DataFrame({'Tmean':ts_monthly}, index=t_monthly)
+    df_farrar.index.name = 'datetime'
+    df_farrar.to_csv('df_farrar.csv')
 
 #==============================================================================
     
@@ -1701,36 +1712,6 @@ if plot_historical == True:
     axs.set_xlim(pd.Timestamp('1785-01-01'),pd.Timestamp('1835-01-01'))
     axs.set_xlabel('Year', fontsize=fontsize)
     axs.set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
-    axs.set_title(titlestr, fontsize=fontsize)
-    axs.tick_params(labelsize=fontsize)    
-    fig.tight_layout()
-    plt.savefig(figstr, dpi=300)
-    plt.close('all')
-
-    # PLOT: Farrar (Tmean) vs Holyoke T919 and Wigglesworth T919
-    
-    print('plotting Farrar vs Holyoke T919 and Wigglesworh T919 ...')
-
-    figstr = 'salem(MA)-holyoke-T919-wigglesworth-T919-cambridge(MA)-farrar-regression.png'
-    titlestr = 'Salem, MA: Holyoke (sub-daily) plus T(919) monthly vs Cambridge, MA: Farrar (monthly mean) observations'
-            
-    fig, axs = plt.subplots(figsize=(15,10))
-        
-    x = df_farrar['Tmean']
-    y1 = df_holyoke_919['T(919)']
-    y2 = df_wigglesworth_919['T(919)']
-    sns.jointplot(x=x, y=y1, kind='kde', color='purple', marker='+', fill=True)  # kind{ “scatter” | “kde” | “hist” | “hex” | “reg” | “resid” }            
-    sns.jointplot(x=x, y=y2, kind='kde', color='teal', marker='+', fill=True)  # kind{ “scatter” | “kde” | “hist” | “hex” | “reg” | “resid” }            
-
- #   if use_fahrenheit == True:
- #       axs.set_ylim(-20,110)
- #   else:
- #       axs.set_ylim(-30,40)
-        
-#    axs.legend(loc='lower right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
-#    axs.set_xlim(pd.Timestamp('1785-01-01'),pd.Timestamp('1835-01-01'))
-#    axs.set_xlabel('Year', fontsize=fontsize)
-#    axs.set_ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     axs.set_title(titlestr, fontsize=fontsize)
     axs.tick_params(labelsize=fontsize)    
     fig.tight_layout()
@@ -3185,11 +3166,11 @@ if plot_glosat_adjusted_with_back_extension == True:
                
     fig, ax = plt.subplots(figsize=(15,10))    
     plt.plot(df_boston_city_wso.index, pd.Series(df_boston_city_wso['boston_city_wso']).rolling(nsmooth,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), ls='-', lw=3, color='lime', alpha=1, zorder=5, label=r'$T_{g}$ 2yr MA: Boston City WSO (reference) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
-    plt.plot(df_holyoke_919.index, pd.Series(df_holyoke_919['T(919)']).rolling(nsmooth,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='green', alpha=0.2, zorder=3, label=r'$T_{g}$ 2yr MA: Salem, MA (Holyoke) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
-    plt.plot(df_wigglesworth_919.index, pd.Series(df_wigglesworth_919['T(919)']).rolling(nsmooth,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='teal', alpha=0.2, zorder=3, label=r'$T_{g}$ 2yr MA: Salem, MA (Wigglesworth) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
+#    plt.plot(df_holyoke_919.index, pd.Series(df_holyoke_919['T(919)']).rolling(nsmooth,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='green', alpha=0.2, zorder=3, label=r'$T_{g}$ 2yr MA: Salem, MA (Holyoke) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
+#    plt.plot(df_wigglesworth_919.index, pd.Series(df_wigglesworth_919['T(919)']).rolling(nsmooth,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='teal', alpha=0.2, zorder=3, label=r'$T_{g}$ 2yr MA: Salem, MA (Wigglesworth) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
     plt.plot(df_farrar_919.index, pd.Series(df_farrar_919['T(919)']).rolling(nsmooth,center=True).mean() - (normal_boston_city_wso - normal_blue_hill), 'o', markersize=10, color='navy', alpha=0.5, zorder=3, label=r'$T_{g}$ 2yr MA: Cambridge, MA (Farrar) - $\Delta$(1961-1990)=' + str(np.round((normal_boston_city_wso - normal_blue_hill),2)) + '$^{\circ}$' + temperature_unit)
     plt.plot(df_blue_hill_1790_2020_tobs_adjusted.index, (pd.Series(df_blue_hill_1790_2020_tobs_adjusted['blue_hill'].values).rolling(nsmooth,center=True).mean()), ls='-', lw=3, color='red', alpha=1, zorder=20, label='$T_{g}$: 2yr MA: Tobs-adjusted GloSAT: 1790-2020')
-    ax.set_xlim(pd.to_datetime('1743-01-01'),pd.to_datetime('1885-01-01'))    
+#    ax.set_xlim(pd.to_datetime('1743-01-01'),pd.to_datetime('1885-01-01'))    
     if use_fahrenheit == True:
         ax.set_ylim(40,55)
     else:
@@ -3252,10 +3233,6 @@ if plot_glosat_adjusted_with_back_extension_vs_cet_anomalies == True:
     plt.plot(convert_datetime_to_year_decimal(df_amherst2, 'datetime'), pd.Series(df_amherst2['amherst2'] - normal_amherst2).rolling(nsmooth,center=True).mean(), ls='-', lw=3, color='navy', alpha=1, zorder=5, label=r'$T_{g}$ 5yr MA: Amherst 2 (reference) anomalies (from 1961-1990)')
     plt.plot(convert_datetime_to_year_decimal(df_blue_hill_1790_2020_tobs_adjusted, 'datetime'), (pd.Series(df_blue_hill_1790_2020_tobs_adjusted['blue_hill'].values - normal_blue_hill).rolling(nsmooth,center=True).mean()), ls='-', lw=3, color='red', alpha=1, zorder=20, label='$T_{g}$: 5yr MA: CNET: 1790-2020 anomalies (from 1961-1990)')
     plt.plot(df_cet.index, pd.Series(df_cet['df_cet'] - normal_cet).rolling(nsmooth,center=True).mean(), ls='-', lw=3, color='teal', label='$T_{g}$: 5yr MA: CET: 1659-2020 anomalies (from 1961-1990)')
-#    if use_fahrenheit == True:
-#        ax.set_ylim(40,55)
-#    else:
-#        ax.set_ylim(-20,40)
     plt.xlabel('Year', fontsize=fontsize)
     plt.ylabel(r'2m Temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
     plt.title(titlestr, fontsize=fontsize)
@@ -3380,6 +3357,39 @@ if save_glosat_adjustments == True:
                 rowstr += f"{monthstr:>5}"          
             f.write(rowstr+'\n')
 
+    # GloSAT: monthly adjusted using T2828 (1961-2020) + Farrar Back-Extension: 1790-2020 (degF)
+                    
+    yearlist = df_blue_hill_1790_2020_tobs_adjusted.index.year.unique()
+    df_blue_hill_adjusted = pd.DataFrame(columns=['year','1','2','3','4','5','6','7','8','9','10','11','12'])
+    df_blue_hill_adjusted['year'] = yearlist
+    for j in range(1,13):
+        df_blue_hill_adjusted[str(j)] = df_blue_hill_1790_2020_tobs_adjusted[df_blue_hill_1790_2020_tobs_adjusted.index.month == j]['blue_hill'].values        
+    stationfile = 'bho-glosat-adjusted-1790-2020.csv'
+    station_data = df_blue_hill_adjusted.iloc[:,range(0,13)].reset_index(drop=True)
+    station_metadata = da_blue_hill.iloc[0,range(14,23)]
+    stationcode = stationcode_blue_hill
+    stationlat = "{:<4}".format(str(int(station_metadata[0]*10)))
+    stationlon = "{:<4}".format(str(int(station_metadata[1]*10)))
+    stationelevation = "{:<3}".format(str(station_metadata[2]))
+    stationname = "{:<20}".format(station_metadata[3][:20])
+    stationcountry = "{:<13}".format(station_metadata[4][:13])
+    stationfirstlast = str(station_metadata[5]) + str(station_metadata[6])
+    stationsourcefirst = "{:<8}".format(str(station_metadata[7]) + str(station_metadata[8]))
+    stationgridcell = "{:<3}".format('NAN')
+    station_header = ' ' + stationcode[0:] + ' ' + stationlat + ' ' + stationlon + ' ' + stationelevation + ' ' + stationname + ' ' + stationcountry + ' ' + stationfirstlast + '  ' + stationsourcefirst + '   ' + stationgridcell 
+    with open(stationfile,'w') as f:
+        f.write(station_header+'\n')
+        for i in range(len(station_data)):  
+            year = str(int(station_data.iloc[i,:][0]))
+            rowstr = year
+            for j in range(1,13):
+                if np.isnan(station_data.iloc[i,:][j]):
+                    monthstr = str(-99.9)
+                else:
+                    monthstr = str(np.round(station_data.iloc[i,:][j],1))
+                rowstr += f"{monthstr:>5}"          
+            f.write(rowstr+'\n')
+
 #------------------------------------------------------------------------------
 print('** END')
 
@@ -3394,33 +3404,75 @@ print('** END')
 #    continue        
 #------------------------------------------------------------------------------
 
-# GAPPY STACKED BAR CHART:
-
-#y, c, x1, x2 = np.loadtxt('test_data.csv', unpack=True)
-#color_mapper = np.vectorize(lambda x: {0: 'red', 1: 'Blue'}.get(x))
-#plt.hlines(c, x1, x2, colors=color_mapper(c), lw=10)
-#plt.hlines(y, x1, x2, colors=color_mapper(c), lw=10)
-
-# OUTLIER: check
-
-#x = df_bho_daily[(df_bho_daily.index>pd.to_datetime(1987, format='%Y')) & (df_bho_daily.index<pd.to_datetime(1990, format='%Y'))]
-
-#fig,ax = plt.subplots(figsize=(15,10))
-#ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
-#plt.plot(pd.date_range(start='1987-02-01', periods=len(x)), x['Tmin'], color='blue', alpha=0.2, label='Tn[daily]')
-#plt.plot(pd.date_range(start='1987-02-01', periods=len(x), freq='D'), x['Tg'], color='purple', alpha=0.2, label='Tg[daily]')
-#plt.plot(pd.date_range(start='1987-02-01', periods=len(x)), x['Tmax'], color='red', alpha=0.2, label='Tx[daily]')
-#plt.plot(pd.date_range(start='1987-03-01', periods=len(y), freq='MS'), y['Tg'], '.', color='blue', ls='-', lw=3, label='Tg[monthly]')
-#plt.plot(pd.date_range(start='1987-03-01', periods=len(y), freq='MS'), y['Tgm'], ',', color='red', ls='_', lw=3, label='Tg[from daily]')
-#plt.legend()
-#plt.savefig('outlier_case_20210615.png', dpi=300)
-#plt.close('all')
-
 #------------------------------------------------------------------------------
 
 if plot_temp == True:
 
-    print('')
-    
+#    print('')
+     
+    print('plotting Farrar vs Holyoke T919 and Wigglesworh T919 ...')
 
+    #------------------------------------------------------------------------------
+    # OLS: linear regression: Farrar (Tmean) vs Holyoke T919 and Wigglesworth T919
+    #------------------------------------------------------------------------------
+
+    df_regression = df_holyoke_919.copy()
+    df_regression.rename(columns={"T(919)": "Holyoke"},inplace=True)
+    df_regression['Wigglesworth'] = df_wigglesworth_919['T(919)']
+    df_regression['Farrar'] = df_farrar['Tmean']    
+    X = df_regression.Farrar
+    Y_H = df_regression.Holyoke
+    Y_W = df_regression.Holyoke
+
+    minval = np.nanmin([np.nanmin(X), np.nanmin(Y_H), np.nanmin(Y_W)])
+    maxval = np.nanmin([np.nanmax(X), np.nanmax(Y_H), np.nanmax(Y_W)])
+
+    mask_H = np.isfinite(X) & np.isfinite(Y_H)
+    mask_W = np.isfinite(X) & np.isfinite(Y_W)
+    corrcoef_H = scipy.stats.pearsonr(X[mask_H], Y_H[mask_H])[0]
+    corrcoef_W = scipy.stats.pearsonr(X[mask_W], Y_W[mask_W])[0]
+    OLS_X_H, OLS_Y_H, OLS_slope_H, OLS_intercept_H, OLS_mse_H, OLS_r2_H = linear_regression_ols(X[mask_H], Y_H[mask_H])
+    OLS_X_W, OLS_Y_W, OLS_slope_W, OLS_intercept_W, OLS_mse_W, OLS_r2_W = linear_regression_ols(X[mask_W], Y_W[mask_W])
+
+    figstr = 'salem(MA)-holyoke-T919-wigglesworth-T919-cambridge(MA)-farrar-regression.png'
+    titlestr = 'Linear regression (early observations 1790-1829): Farrar monthly $T_g$ vs Holyoke monthly $T_{919}$'
+                                             
+    fig,ax = plt.subplots(figsize=(15,10))    
+#   sns.jointplot(x=X[mask_H], y=Y_W[mask_H], kind='kde', color='teal', marker='+', fill=True)  # kind{ “scatter” | “kde” | “hist” | “hex” | “reg” | “resid” }     
+    plt.scatter(X[mask_H], Y_W[mask_H], marker='o', s=50, color='black', alpha=0.2) 
+    plt.plot(OLS_X_H, OLS_Y_H, color='red', ls='-', lw=2, label=r'OLS $\rho$='+str(np.round(corrcoef_H,3))  + ' ' + r'$\alpha$=' + str(np.round(OLS_slope_H[0],3)))
+    ax.plot([minval,maxval], [minval,maxval], color='black', ls='--', zorder=10)    
+    ax.set_xlim(minval, maxval)
+    ax.set_ylim(minval, maxval)
+    ax.set_aspect('equal') 
+    ax.xaxis.grid(True, which='minor')      
+    ax.yaxis.grid(True, which='minor')  
+    ax.xaxis.grid(True, which='major')      
+    ax.yaxis.grid(True, which='major')  
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)
+    leg = plt.legend(loc='lower right', ncol=1, markerscale=3, facecolor='lightgrey', framealpha=1, fontsize=fontsize)    
+    for l in leg.get_lines(): 
+        l.set_alpha(1)
+        l.set_marker('.')
+    plt.xlabel("Farrar monthly $T_g$, $\mathrm{\degree}$" + temperature_unit, fontsize=fontsize)
+    plt.ylabel("Holyoke monthly $T_{919}$, $\mathrm{\degree}$" + temperature_unit, fontsize=fontsize)
+    plt.title(titlestr, fontsize=fontsize)
+    plt.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')
     
+    figstr = 'salem(MA)-holyoke-T919-wigglesworth-T919-cambridge(MA)-farrar-timeseries.png'
+    titlestr = 'Early observations 1786-1829: Farrar monthly $T_g$, Holyoke monthly $T_{919}$ and Wigglesworth monthly $T_{919}$'
+
+    fig, ax = plt.subplots(figsize=(15,10))
+    plt.plot(df_regression['Farrar'], label='Farrar $T_g$')
+    plt.plot(df_regression['Holyoke'], label='Holyoke $T_{919}$')
+    plt.plot(df_regression['Wigglesworth'], label='Wigglesworth $T_{919}$')
+    plt.xlabel('Year', fontsize=fontsize)
+    plt.ylabel(r'Air temperature, $^{\circ}$' + temperature_unit, fontsize=fontsize)
+    plt.title(titlestr, fontsize=fontsize)
+    plt.tick_params(labelsize=fontsize)    
+    plt.legend(loc='upper right', ncol=1, markerscale=1, facecolor='lightgrey', framealpha=0.5, fontsize=fontsize)    
+    fig.tight_layout()
+    plt.savefig(figstr, dpi=300)
+    plt.close('all')
